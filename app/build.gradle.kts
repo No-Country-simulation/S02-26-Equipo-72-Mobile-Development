@@ -5,6 +5,7 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+    jacoco
 }
 
 android {
@@ -85,4 +86,79 @@ dependencies {
     
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+// JaCoCo configuration
+jacoco {
+    version = "0.8.10"
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    
+    classDirectories.setFrom(
+        fileTree("${buildDir}/intermediates/classes/debug") {
+            exclude(
+                // Android/Framework
+                "**/R.class",
+                "**/R$*.class",
+                "**/BuildConfig.*",
+                "**/Manifest*.*",
+                
+                // Código generado
+                "**/*Hilt*.class",
+                "**/dagger/hilt/**",
+                "**/hilt_aggregated_deps/**",
+                
+                // Room DAO (generado automáticamente)
+                "**/data/local/database/dao/**",
+                
+                // Firebase (tienda de terceros)
+                "**/data/remote/firebase/**",
+                
+                // Utils (Constants, etc - bajo valor)
+                "**/utils/**",
+                
+                // UI (tests de UI en androidTest)
+                "**/presentation/ui/**",
+                
+                // Modelos y entidades
+                "**/data/model/**",
+                "**/data/local/database/entity/**",
+                "**/domain/model/**",
+                
+                // Configuración
+                "**/di/**",
+                "**/theme/**",
+                "**/navigation/**",
+                
+                // Tests
+                "**/*Test*.class",
+                
+                // Dependencias externas
+                "**/androidx/**",
+                "**/com/google/**",
+                "**/android/**"
+            )
+        }
+    )
+    
+    sourceDirectories.setFrom(
+        files(
+            "${project.projectDir}/src/main/java",
+            "${project.projectDir}/src/main/kotlin"
+        )
+    )
+    
+    executionData.setFrom(
+        fileTree(buildDir) {
+            include("jacoco/testDebugUnitTest.exec")
+        }
+    )
+    
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
 }
