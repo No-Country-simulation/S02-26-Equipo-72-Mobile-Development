@@ -3,8 +3,8 @@ package com.store.riderfit.presentation.ui.components.auth
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -30,14 +30,14 @@ fun EmailField(
         label = { Text(label) },
         leadingIcon = {
             Icon(
-                imageVector = Icons.Filled.Mail,
+                imageVector = Icons.Filled.Email,
                 contentDescription = "Email icon"
             )
         },
         trailingIcon = {
             if (isError) {
                 Icon(
-                    imageVector = Icons.Filled.Error,
+                    imageVector = Icons.Filled.Warning,
                     contentDescription = "Error icon",
                     tint = androidx.compose.material3.MaterialTheme.colorScheme.error
                 )
