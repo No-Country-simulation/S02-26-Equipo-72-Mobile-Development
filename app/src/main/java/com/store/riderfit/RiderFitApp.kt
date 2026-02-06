@@ -7,7 +7,7 @@ import com.google.firebase.initialize
 class RiderFitApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        // Inicializar Firebase
+        // Firebase se inicializa automáticamente
         Firebase.initialize(this)
     }
 }
