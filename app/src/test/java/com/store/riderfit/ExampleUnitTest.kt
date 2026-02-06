@@ -1,4 +1,4 @@
-package com.example.riderfit
+package com.store.riderfit
 
 import org.junit.Test
 

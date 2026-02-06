@@ -1,4 +1,4 @@
-package com.example.riderfit
+package com.store.riderfit
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.riderfit.ui.theme.RiderfitTheme
+import com.store.riderfit.ui.theme.RiderfitTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

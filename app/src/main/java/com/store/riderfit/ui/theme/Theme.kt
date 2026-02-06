@@ -1,4 +1,4 @@
-package com.example.riderfit.ui.theme
+package com.store.riderfit.ui.theme
 
 import android.app.Activity
 import android.os.Build

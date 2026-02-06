@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "205898636115",
+    "project_id": "riderfit-backend",
+    "storage_bucket": "riderfit-backend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:205898636115:android:d2d07ec1991805e0f29fa6",
+        "android_client_info": {
+          "package_name": "com.store.riderfit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC69CDvM9SkRHK66rz82mxNqYRlov6YVOc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
