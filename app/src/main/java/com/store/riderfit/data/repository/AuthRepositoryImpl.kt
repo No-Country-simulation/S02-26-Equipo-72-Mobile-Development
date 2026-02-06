@@ -1,5 +1,6 @@
 package com.store.riderfit.data.repository
 
+import android.util.Log
 import com.store.riderfit.data.local.database.dao.UserDao
 import com.store.riderfit.data.local.database.entity.UserEntity
 import com.store.riderfit.data.local.preferences.UserPreferences
@@ -12,6 +13,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+
+private const val TAG = "AuthRepositoryImpl"
 
 class AuthRepositoryImpl(
     private val firebaseAuthService: FirebaseAuthService,
@@ -51,6 +54,7 @@ class AuthRepositoryImpl(
                 }
             })
         } catch (e: Exception) {
+            Log.e(TAG, "Error en signUp", e)
             emit(AuthResult.Error(e.message ?: "Error desconocido en signUp"))
         }
     }
@@ -86,6 +90,7 @@ class AuthRepositoryImpl(
                 }
             })
         } catch (e: Exception) {
+            Log.e(TAG, "Error en login", e)
             emit(AuthResult.Error(e.message ?: "Error desconocido en login"))
         }
     }
@@ -105,17 +110,25 @@ class AuthRepositoryImpl(
                 }
             })
         } catch (e: Exception) {
+            Log.e(TAG, "Error en logout", e)
             emit(AuthResult.Error(e.message ?: "Error desconocido en logout"))
         }
     }
 
     override fun getCurrentUser(): Flow<User?> = flow {
         try {
-            // Primero verificar si hay usuario en local
-            emitAll(userPreferences.userId.map { userId ->
-                if (userId != null) {
-                    val localUser = userDao.getUserById(userId)
-                    localUser?.let { entity ->
+            Log.d(TAG, "getCurrentUser() iniciado")
+            
+            // Primero verificar si hay usuario en Firebase (más rápido)
+            val firebaseUser = firebaseAuthService.firebaseAuth.currentUser
+            Log.d(TAG, "Firebase currentUser: $firebaseUser")
+            
+            if (firebaseUser != null) {
+                // Si hay usuario en Firebase, buscar en BD local
+                try {
+                    val localUser = userDao.getUserById(firebaseUser.uid)
+                    Log.d(TAG, "Usuario local encontrado: $localUser")
+                    emit(localUser?.let { entity ->
                         User(
                             id = entity.id,
                             email = entity.email,
@@ -124,12 +137,17 @@ class AuthRepositoryImpl(
                             createdAt = entity.createdAt,
                             updatedAt = entity.updatedAt
                         )
-                    }
-                } else {
-                    null
+                    })
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error leyendo usuario de BD", e)
+                    emit(null)
                 }
-            })
+            } else {
+                Log.d(TAG, "No hay usuario en Firebase, emitiendo null")
+                emit(null)
+            }
         } catch (e: Exception) {
+            Log.e(TAG, "Error en getCurrentUser()", e)
             emit(null)
         }
     }

@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,15 @@ fun RegisterScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState = viewModel.uiState.collectAsState().value
+
+    // Navegar a home después de registro exitoso
+    LaunchedEffect(uiState.isAuthenticated) {
+        if (uiState.isAuthenticated && !uiState.isSubmitting) {
+            navController.navigate("home") {
+                popUpTo("register") { inclusive = true }
+            }
+        }
+    }
 
     if (uiState.error != null) {
         ErrorDialog(

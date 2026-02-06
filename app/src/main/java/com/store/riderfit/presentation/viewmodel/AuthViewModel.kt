@@ -1,5 +1,6 @@
 package com.store.riderfit.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.store.riderfit.domain.model.AuthResult
@@ -17,6 +18,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val TAG = "AuthViewModel"
+
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
@@ -29,6 +32,7 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
+        Log.d(TAG, "AuthViewModel inicializado, llamando checkCurrentUser()")
         checkCurrentUser()
     }
 
@@ -234,18 +238,31 @@ class AuthViewModel @Inject constructor(
 
     private fun checkCurrentUser() {
         viewModelScope.launch {
+            Log.d(TAG, "checkCurrentUser() iniciado - isLoading = true")
             _uiState.update { it.copy(isLoading = true) }
-            getCurrentUserUseCase().collect { user ->
+            try {
+                getCurrentUserUseCase().collect { user ->
+                    Log.d(TAG, "getCurrentUserUseCase emitió: user = $user")
+                    _uiState.update {
+                        it.copy(
+                            currentUserState = if (user != null) {
+                                UiState.Success(user)
+                            } else {
+                                UiState.Idle()
+                            },
+                            currentUser = user,
+                            isAuthenticated = user != null,
+                            isLoading = false
+                        )
+                    }
+                    Log.d(TAG, "Estado actualizado: isAuthenticated = ${user != null}, isLoading = false")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error en checkCurrentUser()", e)
                 _uiState.update {
                     it.copy(
-                        currentUserState = if (user != null) {
-                            UiState.Success(user)
-                        } else {
-                            UiState.Idle()
-                        },
-                        currentUser = user,
-                        isAuthenticated = user != null,
-                        isLoading = false
+                        isLoading = false,
+                        error = e.message ?: "Error desconocido"
                     )
                 }
             }

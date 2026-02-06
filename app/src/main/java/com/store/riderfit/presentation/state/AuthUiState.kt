@@ -30,7 +30,7 @@ data class AuthUiState(
     // Estado general
     val isAuthenticated: Boolean = false,
     val currentUser: User? = null,
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,  // Inicia en true para que splash espere
     val error: String? = null,
     
     // UI flags
