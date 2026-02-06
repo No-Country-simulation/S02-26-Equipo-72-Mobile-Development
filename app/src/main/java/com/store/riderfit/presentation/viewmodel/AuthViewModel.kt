@@ -10,6 +10,8 @@ import com.store.riderfit.domain.usecase.auth.LogoutUseCase
 import com.store.riderfit.domain.usecase.auth.RegisterUseCase
 import com.store.riderfit.presentation.state.AuthUiState
 import com.store.riderfit.presentation.state.UiState
+import com.store.riderfit.utils.validators.EmailValidator
+import com.store.riderfit.utils.validators.PasswordValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -79,24 +81,20 @@ class AuthViewModel @Inject constructor(
     // ==================== VALIDACIONES ====================
 
     private fun validateEmail(email: String) {
-        val isValid = email.matches(Regex("^[A-Za-z0-9+_.-]+@(.+)$"))
-        val error = if (!isValid && email.isNotEmpty()) "Email inválido" else null
+        val error = EmailValidator.validate(email)
         _uiState.update {
             it.copy(
-                isEmailValid = isValid,
+                isEmailValid = error == null,
                 emailError = error
             )
         }
     }
 
     private fun validatePassword(password: String) {
-        val isValid = password.length >= 6
-        val error = if (!isValid && password.isNotEmpty()) {
-            "Mínimo 6 caracteres"
-        } else null
+        val error = PasswordValidator.validate(password)
         _uiState.update {
             it.copy(
-                isPasswordValid = isValid,
+                isPasswordValid = error == null,
                 passwordError = error
             )
         }

@@ -10,6 +10,7 @@ import com.store.riderfit.domain.usecase.auth.LogoutUseCase
 import com.store.riderfit.domain.usecase.user.GetUserProfileUseCase
 import com.store.riderfit.presentation.state.AuthUiState
 import com.store.riderfit.presentation.state.UiState
+import com.store.riderfit.utils.validators.EmailValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -86,11 +87,10 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun validateEmail(email: String) {
-        val isValid = email.matches(Regex("^[A-Za-z0-9+_.-]+@(.+)$"))
-        val error = if (!isValid && email.isNotEmpty()) "Email inválido" else null
+        val error = EmailValidator.validate(email)
         _uiState.update {
             it.copy(
-                isEmailValid = isValid,
+                isEmailValid = error == null,
                 emailError = error
             )
         }
