@@ -17,7 +17,7 @@ class UserRepositoryImpl(
     private val userDao: UserDao
 ) : IUserRepository {
 
-    override suspend fun saveUserProfile(user: User): Flow<AuthResult<Unit>> = flow {
+    override fun saveUserProfile(user: User): Flow<AuthResult<Unit>> = flow {
         try {
             emitAll(firebaseUserService.saveUserProfile(user).map { result ->
                 when (result) {
@@ -71,7 +71,7 @@ class UserRepositoryImpl(
         }
     }
 
-    override suspend fun updateUserProfile(user: User): Flow<AuthResult<Unit>> = flow {
+    override fun updateUserProfile(user: User): Flow<AuthResult<Unit>> = flow {
         try {
             emitAll(firebaseUserService.saveUserProfile(user).map { result ->
                 when (result) {

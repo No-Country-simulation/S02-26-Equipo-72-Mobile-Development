@@ -19,7 +19,7 @@ class AuthRepositoryImpl(
     private val userPreferences: UserPreferences
 ) : IAuthRepository {
 
-    override suspend fun signUp(
+    override fun signUp(
         email: String,
         password: String,
         displayName: String
@@ -55,7 +55,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun login(
+    override fun login(
         email: String,
         password: String
     ): Flow<AuthResult<User>> = flow {
@@ -90,7 +90,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun logout(): Flow<AuthResult<Unit>> = flow {
+    override fun logout(): Flow<AuthResult<Unit>> = flow {
         try {
             emitAll(firebaseAuthService.logout().map { result ->
                 when (result) {

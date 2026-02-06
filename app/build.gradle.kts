@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
     kotlin("kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -64,6 +65,11 @@ dependencies {
     
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.2.0")
+    
+    // Hilt (Dependency Injection)
+    implementation("com.google.dagger:hilt-android:2.56.2")
+    kapt("com.google.dagger:hilt-compiler:2.56.2")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     
     // Testing
     testImplementation(libs.junit)
