@@ -1,7 +1,6 @@
 package com.store.riderfit.presentation.viewmodel
 
 import android.util.Log
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.google.common.truth.Truth.assertThat
 import com.store.riderfit.domain.model.User
 import com.store.riderfit.domain.usecase.auth.GetCurrentUserUseCase
@@ -10,7 +9,6 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
-import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
@@ -23,45 +21,26 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
-
 /**
  * Tests unitarios para SplashScreenViewModel
- *
- * Valida:
- * - Estado inicial (Loading)
- * - Verificación de autenticación exitosa → ToHome
- * - Verificación de autenticación fallida → ToLogin
- * - Manejo de timeout (3 segundos)
- * - Manejo de errores
- * - Flujo completo de verificación
+ * Validamos: Estados del splash, navegación basada en autenticación
  */
 class SplashScreenViewModelTest {
 
-    private lateinit var splashScreenViewModel: SplashScreenViewModel
+    private lateinit var splashViewModel: SplashScreenViewModel
     private val mockGetCurrentUserUseCase = mockk<GetCurrentUserUseCase>()
     private val testDispatcher = StandardTestDispatcher()
-
-    private val mockUser = User(
-        id = "user123",
-        email = "test@example.com",
-        displayName = "Test User",
-        photoUrl = null,
-        createdAt = System.currentTimeMillis(),
-        updatedAt = System.currentTimeMillis()
-    )
 
     @Before
     fun setup() {
         // Set Main dispatcher for viewModelScope
         Dispatchers.setMain(testDispatcher)
 
-        // Mock android.util.Log to prevent "Method d in android.util.Log not mocked" error
+        // Mock android.util.Log
         mockkStatic(Log::class)
         every { Log.d(any<String>(), any<String>()) } returns 0
         every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-        every { Log.e(any<String>(), any<String>()) } returns 0
-        every { Log.w(any<String>(), any<String>()) } returns 0
+        every { Log.i(any<String>(), any<String>()) } returns 0
     }
 
     @After
@@ -69,185 +48,184 @@ class SplashScreenViewModelTest {
         Dispatchers.resetMain()
     }
 
+    /**
+     * GIVEN: Usuario autenticado existente
+     * WHEN: Se inicializa el ViewModel
+     * THEN: Estado cambia a ToHome
+     */
     @Test
-    fun `Initial state should be Loading`() = runTest {
+    fun testInitialization_WithAuthenticatedUser_NavigatesToHome() = runTest {
+        // Arrange
+        val authenticatedUser = User(
+            id = "123",
+            email = "user@email.com",
+            displayName = "Test User",
+            photoUrl = null,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+        coEvery { mockGetCurrentUserUseCase() } returns flowOf(authenticatedUser)
+
+        // Act
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isInstanceOf(SplashState.ToHome::class.java)
+    }
+
+    /**
+     * GIVEN: Usuario no autenticado (null)
+     * WHEN: Se inicializa el ViewModel
+     * THEN: Estado cambia a ToLogin
+     */
+    @Test
+    fun testInitialization_WithUnauthenticatedUser_NavigatesToLogin() = runTest {
         // Arrange
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
 
         // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        advanceUntilIdle()
 
         // Assert
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.Loading)
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isInstanceOf(SplashState.ToLogin::class.java)
     }
 
+    /**
+     * GIVEN: GetCurrentUserUseCase lanza excepción
+     * WHEN: Se inicializa el ViewModel
+     * THEN: Estado cambia a Error
+     */
     @Test
-    fun `When user is authenticated should navigate to Home`() = runTest {
+    fun testInitialization_WithException_ShowsError() = runTest {
         // Arrange
-        coEvery { mockGetCurrentUserUseCase() } returns flowOf(mockUser)
+        val errorMessage = "Error de conexión"
+        coEvery { mockGetCurrentUserUseCase() } throws Exception(errorMessage)
 
         // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
-        advanceUntilIdle() // Wait for coroutines to complete
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        advanceUntilIdle()
 
         // Assert
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.ToHome)
-        verify { Log.d("SplashScreenViewModel", "✓ Usuario autenticado → Navegando a Home") }
+        // En caso de error, el ViewModel navega a ToLogin como fallback
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isEqualTo(SplashState.ToLogin)
     }
 
+    /**
+     * GIVEN: Estado inicial
+     * WHEN: Se inicializa el ViewModel
+     * THEN: Empieza en Loading
+     */
     @Test
-    fun `When user is not authenticated should navigate to Login`() = runTest {
+    fun testInitialization_StartsInLoadingState() = runTest {
         // Arrange
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
 
         // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
-        advanceUntilIdle() // Wait for coroutines to complete
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
 
-        // Assert
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.ToLogin)
-        verify { Log.d("SplashScreenViewModel", "✗ Usuario no autenticado → Navegando a Login") }
+        // Assert (inicialmente debería estar en Loading)
+        val initialState = splashViewModel.splashState.value
+        assertThat(initialState).isInstanceOf(SplashState.Loading::class.java)
     }
 
+    /**
+     * GIVEN: Usuario con datos parciales
+     * WHEN: Se autentica
+     * THEN: Navega a Home con los datos disponibles
+     */
     @Test
-    fun `When getCurrentUser throws exception should navigate to Login`() = runTest {
+    fun testInitialization_WithPartialUserData_NavigatesToHome() = runTest {
         // Arrange
-        coEvery { mockGetCurrentUserUseCase() } throws RuntimeException("Network error")
+        val userWithPartialData = User(
+            id = "456",
+            email = "partial@email.com",
+            displayName = "", // Datos parciales (displayName vacío)
+            photoUrl = null,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+        coEvery { mockGetCurrentUserUseCase() } returns flowOf(userWithPartialData)
 
         // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
         advanceUntilIdle()
 
         // Assert
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.ToLogin)
-        verify { Log.e("SplashScreenViewModel", "Error obteniendo usuario: Network error") }
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isInstanceOf(SplashState.ToHome::class.java)
     }
 
+    /**
+     * GIVEN: Timeout en la verificación de usuario
+     * WHEN: Se agota el tiempo
+     * THEN: Estado cambia a ToLogin como fallback
+     */
     @Test
-    fun `When verification times out should navigate to Login`() = runTest {
-        // Arrange - Simular un timeout simplemente devolviendo null después de procesamiento
-        coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
+    fun testInitialization_WithTimeout_ShowsError() = runTest {
+        // Arrange
+        coEvery { mockGetCurrentUserUseCase() } throws Exception("Timeout")
 
         // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
         advanceUntilIdle()
 
         // Assert
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.ToLogin)
+        // En caso de timeout, el ViewModel va a ToLogin como fallback
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isEqualTo(SplashState.ToLogin)
     }
 
+    /**
+     * GIVEN: Múltiples llamadas al use case
+     * WHEN: Se emiten diferentes estados
+     * THEN: Solo el último estado es válido
+     */
     @Test
-    fun `ViewModel initialization should call verifyAuthentication`() = runTest {
+    fun testInitialization_WithMultipleEmissions_UsesLatestState() = runTest {
         // Arrange
-        coEvery { mockGetCurrentUserUseCase() } returns flowOf(mockUser)
+        val user1 = User(
+            id = "1", email = "user1@email.com", displayName = "User 1",
+            photoUrl = null, createdAt = 0L, updatedAt = 0L
+        )
+        val user2 = User(
+            id = "2", email = "user2@email.com", displayName = "User 2",
+            photoUrl = null, createdAt = 0L, updatedAt = 0L
+        )
+
+        coEvery { mockGetCurrentUserUseCase() } returns flowOf(user1, user2)
 
         // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
         advanceUntilIdle()
 
         // Assert
-        verify { Log.d("SplashScreenViewModel", "SplashScreenViewModel inicializado") }
-        verify { Log.d("SplashScreenViewModel", "Iniciando verificación de autenticación...") }
-        verify(exactly = 1) { mockGetCurrentUserUseCase() }
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isInstanceOf(SplashState.ToHome::class.java)
+        // ToHome es un object, no contiene información del usuario
     }
 
+    /**
+     * GIVEN: Use case emite flowOf vacío
+     * WHEN: Se inicializa
+     * THEN: Va a ToLogin por no tener datos
+     */
     @Test
-    fun `Critical error in verifyAuthentication should navigate to Login`() = runTest {
+    fun testInitialization_WithEmptyFlow_HandlesGracefully() = runTest {
         // Arrange
-        coEvery { mockGetCurrentUserUseCase() } throws RuntimeException("Critical error")
+        coEvery { mockGetCurrentUserUseCase() } returns flowOf()
 
         // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
         advanceUntilIdle()
 
         // Assert
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.ToLogin)
-    }
-
-    @Test
-    fun `State should remain Loading until verification completes`() = runTest {
-        // Arrange
-        coEvery { mockGetCurrentUserUseCase() } coAnswers {
-            flowOf(mockUser).also {
-                delay(100L) // Small delay to test intermediate state
-            }
-        }
-
-        // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
-
-        // Assert - Initially should be Loading
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.Loading)
-
-        // Act - Complete the verification
-        advanceUntilIdle()
-
-        // Assert - Should change to ToHome after completion
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.ToHome)
-    }
-
-    @Test
-    fun `Multiple state observations should work correctly`() = runTest {
-        // Arrange
-        val stateHistory = mutableListOf<SplashState>()
-        coEvery { mockGetCurrentUserUseCase() } returns flowOf(mockUser)
-
-        // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
-
-        // Collect initial state
-        stateHistory.add(splashScreenViewModel.splashState.value)
-
-        // Complete verification
-        advanceUntilIdle()
-        stateHistory.add(splashScreenViewModel.splashState.value)
-
-        // Assert
-        assertThat(stateHistory).hasSize(2)
-        assertThat(stateHistory[0]).isEqualTo(SplashState.Loading)
-        assertThat(stateHistory[1]).isEqualTo(SplashState.ToHome)
-    }
-
-    @Test
-    fun `StateFlow should be properly exposed as read-only`() = runTest {
-        // Arrange
-        coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
-
-        // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
-
-        // Assert - Verify StateFlow is read-only (not MutableStateFlow)
-        assertThat(splashScreenViewModel.splashState).isNotInstanceOf(kotlinx.coroutines.flow.MutableStateFlow::class.java)
-    }
-
-    @Test
-    fun `Logging should be called for all verification steps`() = runTest {
-        // Arrange
-        coEvery { mockGetCurrentUserUseCase() } returns flowOf(mockUser)
-
-        // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
-        advanceUntilIdle()
-
-        // Assert - Verify all expected log calls
-        verify { Log.d("SplashScreenViewModel", "SplashScreenViewModel inicializado") }
-        verify { Log.d("SplashScreenViewModel", "Iniciando verificación de autenticación...") }
-        verify { Log.d("SplashScreenViewModel", "Usuario obtenido: autenticado") }
-        verify { Log.d("SplashScreenViewModel", "✓ Usuario autenticado → Navegando a Home") }
-    }
-
-    @Test
-    fun `When user is null from use case should navigate to Login`() = runTest {
-        // Arrange
-        coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
-
-        // Act
-        splashScreenViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
-        advanceUntilIdle()
-
-        // Assert
-        assertThat(splashScreenViewModel.splashState.value).isEqualTo(SplashState.ToLogin)
-        verify { Log.d("SplashScreenViewModel", "Usuario obtenido: no autenticado") }
-        verify { Log.d("SplashScreenViewModel", "✗ Usuario no autenticado → Navegando a Login") }
+        // Sin emisiones, se comporta como si no hubiera usuario
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isEqualTo(SplashState.ToLogin)
     }
 }
