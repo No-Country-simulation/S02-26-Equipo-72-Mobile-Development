@@ -11,6 +11,7 @@ import com.store.riderfit.domain.model.User
 import com.store.riderfit.domain.repository.IAuthRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
@@ -118,32 +119,49 @@ class AuthRepositoryImpl(
     override fun getCurrentUser(): Flow<User?> = flow {
         try {
             Log.d(TAG, "getCurrentUser() iniciado")
-            
-            // Primero verificar si hay usuario en Firebase (más rápido)
+
+            // Verificar preferencias primero (más rápido)
+            val isLoggedIn = userPreferences.isLoggedIn.first()
+            Log.d(TAG, "isLoggedIn desde preferencias: $isLoggedIn")
+
+            if (!isLoggedIn) {
+                Log.d(TAG, "Usuario no autenticado según preferencias")
+                emit(null)
+                return@flow
+            }
+
+            // Verificar Firebase Auth
             val firebaseUser = firebaseAuthService.firebaseAuth.currentUser
-            Log.d(TAG, "Firebase currentUser: $firebaseUser")
-            
+            Log.d(TAG, "Firebase currentUser: ${firebaseUser?.uid}")
+
             if (firebaseUser != null) {
                 // Si hay usuario en Firebase, buscar en BD local
                 try {
                     val localUser = userDao.getUserById(firebaseUser.uid)
-                    Log.d(TAG, "Usuario local encontrado: $localUser")
-                    emit(localUser?.let { entity ->
-                        User(
-                            id = entity.id,
-                            email = entity.email,
-                            displayName = entity.displayName,
-                            photoUrl = entity.photoUrl,
-                            createdAt = entity.createdAt,
-                            updatedAt = entity.updatedAt
-                        )
-                    })
+                    if (localUser != null) {
+                        Log.d(TAG, "Usuario encontrado: ${localUser.email}")
+                        emit(User(
+                            id = localUser.id,
+                            email = localUser.email,
+                            displayName = localUser.displayName,
+                            photoUrl = localUser.photoUrl,
+                            createdAt = localUser.createdAt,
+                            updatedAt = localUser.updatedAt
+                        ))
+                    } else {
+                        Log.w(TAG, "Usuario en Firebase pero no en BD local, limpiando sesión")
+                        // Limpiar preferencias inconsistentes
+                        userPreferences.clearAll()
+                        emit(null)
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error leyendo usuario de BD", e)
                     emit(null)
                 }
             } else {
-                Log.d(TAG, "No hay usuario en Firebase, emitiendo null")
+                Log.w(TAG, "Preferencias indican autenticado pero no hay usuario en Firebase, limpiando")
+                // Limpiar preferencias inconsistentes
+                userPreferences.clearAll()
                 emit(null)
             }
         } catch (e: Exception) {
