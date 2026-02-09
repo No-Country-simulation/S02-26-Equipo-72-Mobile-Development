@@ -3,117 +3,123 @@ package com.store.riderfit.presentation.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * RiderFit Color Palette - Light Theme
- * 
- * Tonal Palettes based on:
+ * RiderFit Color Palette - System Design
+ *
+ * Tonal Palettes based on Material 3 Design System:
  * - Primary (Green): H: 79, S: 100
- * - Secondary (Orange/Brown): H: 51, S: 100
+ * - Secondary (Beige/Yellow): H: 51, S: 100
  * - Neutral (Blue-Gray): H: 198, S: 20
  * - Error (Red): H: 359, S: 100
  */
 object RiderFitColors {
-    
+
     // ===== PRIMARY COLOR PALETTE (Green) =====
     // H: 79, S: 100, L: varies
     object PrimaryTones {
-        val L900 = Color(0xFF0D1F00)    // L: 7
-        val L800 = Color(0xFF132600)    // L: 10
-        val L700 = Color(0xFF1F4600)    // L: 17
-        val L600 = Color(0xFF336600)    // L: 27
-        val L500 = Color(0xFF4D8600)    // L: 37
-        val L400 = Color(0xFF66A500)    // L: 47
-        val L300 = Color(0xFF80BF00)    // L: 57
-        val L200 = Color(0xFF99D900)    // L: 67
-        val L100 = Color(0xFFB3FF00)    // L: 77
-        val L50 = Color(0xFFCCFF66)     // L: 87
-        val L10 = Color(0xFFF0FFF0)     // L: 97
+        val L900 = Color(0xFF1A2E00)    // Tono 900
+        val L800 = Color(0xFF2D4600)    // Tono 800
+        val L700 = Color(0xFF3F6600)    // Tono 700 - Principal
+        val L600 = Color(0xFF518600)    // Tono 600
+        val L500 = Color(0xFF63A600)    // Tono 500
+        val L400 = Color(0xFF7BC600)    // Tono 400
+        val L300 = Color(0xFF94E600)    // Tono 300
+        val L200 = Color(0xFF9EFF00)    // Tono 200
+        val L100 = Color(0xFFB8FF47)    // Tono 100
+        val L50 = Color(0xFFD2FF87)     // Tono 50
+        val L10 = Color(0xFFECFFD7)     // Tono 10
     }
-    
+
     // Primary semantic colors for Material3
     val Primary = PrimaryTones.L700              // Principal
-    val OnPrimary = Color(0xFFF0FFF0)            // 10
-    val PrimaryContainer = PrimaryTones.L50      // 50
-    val OnPrimaryContainer = PrimaryTones.L900   // 900
-    
-    // ===== SECONDARY COLOR PALETTE (Orange/Brown) =====
+    val OnPrimary = Color(0xFFFFFFFF)            // Blanco sobre verde
+    val PrimaryContainer = PrimaryTones.L50      // Container claro
+    val OnPrimaryContainer = PrimaryTones.L900   // Texto oscuro sobre container
+
+    // ===== SECONDARY COLOR PALETTE (Beige/Yellow) =====
     // H: 51, S: 100, L: varies
     object SecondaryTones {
-        val L900 = Color(0xFF331F00)    // L: 7
-        val L800 = Color(0xFF4D2600)    // L: 10
-        val L700 = Color(0xFF664D00)    // L: 17
-        val L600 = Color(0xFF996600)    // L: 27
-        val L500 = Color(0xFFCC8800)    // L: 37
-        val L400 = Color(0xFFFFAA00)    // L: 47
-        val L300 = Color(0xFFFFBB33)    // L: 57
-        val L200 = Color(0xFFFFCC66)    // L: 67
-        val L100 = Color(0xFFFFDD99)    // L: 77
-        val L50 = Color(0xFFFFEE99)     // L: 87
-        val L10 = Color(0xFFFFFBF0)     // L: 97
+        val L900 = Color(0xFF2E1F00)    // Tono 900
+        val L800 = Color(0xFF463000)    // Tono 800
+        val L700 = Color(0xFF664400)    // Tono 700 - Principal
+        val L600 = Color(0xFF865A00)    // Tono 600
+        val L500 = Color(0xFFA67000)    // Tono 500
+        val L400 = Color(0xFFC68600)    // Tono 400
+        val L300 = Color(0xFFE69C00)    // Tono 300
+        val L200 = Color(0xFFFFB200)    // Tono 200
+        val L100 = Color(0xFFFFCC47)    // Tono 100
+        val L50 = Color(0xFFFFE687)     // Tono 50
+        val L10 = Color(0xFFFFF8D7)     // Tono 10
     }
-    
+
     // Secondary semantic colors for Material3
     val Secondary = SecondaryTones.L700          // Principal
-    val OnSecondary = SecondaryTones.L10         // 10
-    val SecondaryContainer = SecondaryTones.L50  // 50
-    val OnSecondaryContainer = SecondaryTones.L900 // 900
-    
+    val OnSecondary = Color(0xFFFFFFFF)          // Blanco sobre beige
+    val SecondaryContainer = SecondaryTones.L50  // Container claro
+    val OnSecondaryContainer = SecondaryTones.L900 // Texto oscuro sobre container
+
     // ===== NEUTRAL COLOR PALETTE (Blue-Gray) =====
     // H: 198, S: 20, L: varies
     object NeutralTones {
-        val L900 = Color(0xFF030303)    // L: 1
-        val L800 = Color(0xFFE3E8EB)    // L: 89
-        val L700 = Color(0xFF1D2E35)    // L: 17
-        val L600 = Color(0xFF334856)    // L: 25
-        val L500 = Color(0xFF496378)    // L: 33
-        val L400 = Color(0xFF5F7C99)    // L: 41
-        val L300 = Color(0xFF7595BA)    // L: 49
-        val L200 = Color(0xFF8AADDA)    // L: 57
-        val L100 = Color(0xFFA0C5EB)    // L: 65
-        val L50 = Color(0xFFB5DDFB)     // L: 73
-        val L10 = Color(0xFFF0F5F9)     // L: 97
+        val L900 = Color(0xFF1A1C1E)    // Tono 900
+        val L800 = Color(0xFF2E3133)    // Tono 800
+        val L700 = Color(0xFF43474A)    // Tono 700
+        val L600 = Color(0xFF595D61)    // Tono 600
+        val L500 = Color(0xFF707478)    // Tono 500
+        val L400 = Color(0xFF888B8F)    // Tono 400
+        val L300 = Color(0xFFA0A3A7)    // Tono 300
+        val L200 = Color(0xFFB9BCBF)    // Tono 200
+        val L100 = Color(0xFFD1D4D8)    // Tono 100
+        val L50 = Color(0xFFE8ECF0)     // Tono 50
+        val L10 = Color(0xFFF5F9FD)     // Tono 10
     }
-    
+
     // Neutral semantic colors
-    val Background = NeutralTones.L10            // 10
-    val OnBackground = NeutralTones.L700         // 700
-    val Surface = NeutralTones.L10               // 10
-    val OnSurface = NeutralTones.L900            // 900
-    val SurfaceVariant = NeutralTones.L700       // 700
-    val OnSurfaceVariant = NeutralTones.L600     // 600
-    
-    // Surface tones with primary overlay
-    val SurfaceAt1 = Color(0xFFF5F6F3)      // +4% Primary
-    val SurfaceAt2 = Color(0xFFF0F2EB)      // +8% Primary
-    val SurfaceAt3 = Color(0xFFEBEDE3)      // +10% Primary
-    val SurfaceAt4 = Color(0xFFE6E9DB)      // +12% Primary
-    val SurfaceAt5 = Color(0xFFE1E4D3)      // +14% Primary
-    
+    val Background = Color(0xFFFFFBFF)           // Blanco puro para fondo
+    val OnBackground = NeutralTones.L900         // Texto principal
+    val Surface = Color(0xFFFFFBFF)              // Superficie blanca
+    val OnSurface = NeutralTones.L900            // Texto sobre superficie
+    val SurfaceVariant = NeutralTones.L50        // Variante de superficie
+    val OnSurfaceVariant = NeutralTones.L600     // Texto sobre variante
+    val Outline = NeutralTones.L300              // Bordes
+    val OutlineVariant = NeutralTones.L100       // Bordes claros
+
+    // Surface tones with primary overlay (Material 3)
+    val SurfaceAt1 = Color(0xFFF8F9F6)      // +4% Primary
+    val SurfaceAt2 = Color(0xFFF2F4EE)      // +8% Primary
+    val SurfaceAt3 = Color(0xFFEDF0E6)      // +11% Primary
+    val SurfaceAt4 = Color(0xFFE8EBDF)      // +12% Primary
+    val SurfaceAt5 = Color(0xFFE3E6D7)      // +14% Primary
+
     // ===== ERROR COLOR PALETTE (Red) =====
     // H: 359, S: 100, L: varies
     object ErrorTones {
-        val L900 = Color(0xFF661F1F)    // L: 24
-        val L800 = Color(0xFF993333)    // L: 32
-        val L700 = Color(0xFFCC4444)    // L: 40
-        val L600 = Color(0xFFFF5555)    // L: 48
-        val L500 = Color(0xFFFF8888)    // L: 56
-        val L400 = Color(0xFFFFBBBB)    // L: 64
-        val L300 = Color(0xFFFFDDDD)    // L: 72
-        val L200 = Color(0xFFFFEEEE)    // L: 80
-        val L100 = Color(0xFFFFF5F5)    // L: 88
-        val L50 = Color(0xFFFFFAFA)     // L: 96
-        val L10 = Color(0xFFFFFBFB)     // L: 99
+        val L900 = Color(0xFF410002)    // Tono 900
+        val L800 = Color(0xFF5D1429)    // Tono 800
+        val L700 = Color(0xFF7D1128)    // Tono 700
+        val L600 = Color(0xFF9E0E27)    // Tono 600
+        val L500 = Color(0xFFBA1A1A)    // Tono 500 - Principal
+        val L400 = Color(0xFFDE3730)    // Tono 400
+        val L300 = Color(0xFFFF5449)    // Tono 300
+        val L200 = Color(0xFFFF897D)    // Tono 200
+        val L100 = Color(0xFFFFB4AB)    // Tono 100
+        val L50 = Color(0xFFFFDAD6)     // Tono 50
+        val L10 = Color(0xFFFFFBFF)     // Tono 10
     }
-    
+
     // Error semantic colors for Material3
-    val Error = ErrorTones.L700                  // Principal
-    val OnError = ErrorTones.L10                 // 10
-    val ErrorContainer = ErrorTones.L50          // 50
-    val OnErrorContainer = ErrorTones.L900       // 900
-    
-    // ===== SPLASH SCREEN SPECIFIC COLORS =====
-    val SplashOverlayGreen = Color(0xFF3A5500)  // Original green overlay
-    val SplashLogoWhite = Color(0xFFFAFFF0)     // Off-white for logo
-    
+    val Error = ErrorTones.L500                  // Principal
+    val OnError = Color(0xFFFFFFFF)              // Blanco sobre error
+    val ErrorContainer = ErrorTones.L50          // Container claro
+    val OnErrorContainer = ErrorTones.L900       // Texto oscuro sobre container
+
+    // ===== INVERSE COLORS =====
+    val InverseSurface = NeutralTones.L800       // Superficie inversa
+    val InverseOnSurface = NeutralTones.L50      // Texto sobre superficie inversa
+    val InversePrimary = PrimaryTones.L200       // Primary invertido
+
+    // ===== SCRIM =====
+    val Scrim = Color(0x80000000)                // Negro transparente para overlays
+
     // ===== LEGACY ALIASES (for backward compatibility) =====
     val White = Color(0xFFFFFFFF)
     val Black = Color(0xFF000000)
@@ -127,9 +133,13 @@ object RiderFitColors {
     val Gray200 = NeutralTones.L200
     val Gray100 = NeutralTones.L100
     val Gray50 = NeutralTones.L50
-    
+
     // Semantic aliases
-    val Success = PrimaryTones.L600
-    val Warning = SecondaryTones.L500
-    val Info = NeutralTones.L400
+    val Success = PrimaryTones.L600              // Verde para éxito
+    val Warning = SecondaryTones.L500            // Amarillo/beige para advertencia
+    val Info = NeutralTones.L500                 // Gris para información
+
+    // ===== SPLASH SCREEN SPECIFIC COLORS =====
+    val SplashOverlayGreen = PrimaryTones.L800   // Verde oscuro para overlay
+    val SplashLogoWhite = Color(0xFFFAFFF0)      // Off-white para logo
 }

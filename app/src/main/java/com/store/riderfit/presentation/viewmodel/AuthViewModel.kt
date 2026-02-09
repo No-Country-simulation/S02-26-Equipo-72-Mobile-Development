@@ -57,6 +57,12 @@ class AuthViewModel @Inject constructor(
 
     fun onPasswordConfirmChanged(passwordConfirm: String) {
         _uiState.update { it.copy(passwordConfirm = passwordConfirm) }
+        validatePasswordConfirm(passwordConfirm)
+    }
+
+    fun onConfirmPasswordChanged(confirmPassword: String) {
+        _uiState.update { it.copy(passwordConfirm = confirmPassword) }
+        validatePasswordConfirm(confirmPassword)
     }
 
     fun toggleShowPassword() {
@@ -111,6 +117,11 @@ class AuthViewModel @Inject constructor(
                 displayNameError = error
             )
         }
+    }
+
+    private fun validatePasswordConfirm(passwordConfirm: String) {
+        // La validación se maneja en el estado mediante confirmPasswordError
+        // No necesitamos almacenar un error separado ya que se calcula dinámicamente
     }
 
     // ==================== OPERACIONES ====================

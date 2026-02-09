@@ -7,19 +7,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.store.riderfit.presentation.ui.screens.auth.LoginScreen
 import com.store.riderfit.presentation.ui.screens.auth.RegisterScreen
-import com.store.riderfit.presentation.ui.screens.auth.SplashScreen
+import com.store.riderfit.presentation.ui.screens.public.SplashScreen
+import com.store.riderfit.presentation.ui.screens.public.WelcomeScreen
 import com.store.riderfit.presentation.ui.screens.public.HomeScreen
 import com.store.riderfit.presentation.ui.screens.protected.ProfileScreen
 
 /**
  * Grafo de navegación principal de RiderFit
- * 
+ *
  * Estructura:
- * ├── SplashScreen (punto de entrada)
- * ├── AuthGraph
- * │   ├── LoginScreen
- * │   └── RegisterScreen
- * └── MainGraph
+ * ├── PublicScreens (pantallas públicas)
+ * │   ├── SplashScreen (punto de entrada)
+ * │   └── WelcomeScreen (pantalla de bienvenida)
+ * ├── AuthGraph (autenticación)
+ * │   ├── LoginScreen (formulario de login)
+ * │   └── RegisterScreen (formulario de registro)
+ * └── MainGraph (pantallas protegidas)
  *     ├── HomeScreen
  *     └── ProfileScreen
  */
@@ -29,9 +32,13 @@ fun RiderFitNavGraph(navController: NavHostController) {
         navController = navController,
         startDestination = Route.Splash.route
     ) {
-        // ==================== SPLASH SCREEN ====================
+        // ==================== PUBLIC SCREENS ====================
         composable(Route.Splash.route) {
             SplashScreen(navController)
+        }
+
+        composable(Route.Welcome.route) {
+            WelcomeScreen(navController)
         }
 
         // ==================== AUTH GRAPH ====================

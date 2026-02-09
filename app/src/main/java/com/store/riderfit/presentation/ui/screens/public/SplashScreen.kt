@@ -1,4 +1,4 @@
-package com.store.riderfit.presentation.ui.screens.auth
+package com.store.riderfit.presentation.ui.screens.public
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -47,7 +47,7 @@ private const val NAVIGATION_DELAY_MS = 2000
  * - Logo: SVG caballo blanco (150x150 dp) con fade-in + scale
  * - Textos: "RiderFit" + "Equipo ecuestre"
  * - Spinner: Circular blanco, fade-out después de 1.5s
- * - Navegación automática a Login o Home después de 2s
+ * - Navegación automática a Welcome o Home después de 2s
  */
 @Composable
 fun SplashScreen(
@@ -80,10 +80,10 @@ fun SplashScreen(
         }
         is SplashState.ToLogin -> {
             LaunchedEffect(Unit) {
-                android.util.Log.d("SplashScreen", "Estado ToLogin detectado, navegando a Login en ${NAVIGATION_DELAY_MS}ms")
+                android.util.Log.d("SplashScreen", "Estado ToLogin detectado, navegando a Welcome en ${NAVIGATION_DELAY_MS}ms")
                 delay(NAVIGATION_DELAY_MS.toLong())
-                android.util.Log.d("SplashScreen", "Navegando a Login: ${Route.Login.route}")
-                navController.navigate(Route.Login.route) {
+                android.util.Log.d("SplashScreen", "Navegando a Welcome: ${Route.Welcome.route}")
+                navController.navigate(Route.Welcome.route) {
                     popUpTo(Route.Splash.route) { inclusive = true }
                 }
             }
