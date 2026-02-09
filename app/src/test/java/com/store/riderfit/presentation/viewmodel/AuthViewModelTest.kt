@@ -41,12 +41,12 @@ class AuthViewModelTest {
     fun setup() {
         // Set Main dispatcher for viewModelScope
         Dispatchers.setMain(testDispatcher)
-        
+
         // Mock android.util.Log to prevent "Method d in android.util.Log not mocked" error
         mockkStatic(Log::class)
         every { Log.d(any<String>(), any<String>()) } returns 0
         every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-        
+
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
         authViewModel = AuthViewModel(
             loginUseCase = mockLoginUseCase,
@@ -226,6 +226,169 @@ class AuthViewModelTest {
     }
 
     /**
+     * GIVEN: Display name válido (2+ caracteres)
+     * WHEN: Se actualiza
+     * THEN: Es válido sin error
+     */
+    @Test
+    fun testOnDisplayNameChanged_WithValidName_IsValid() = runTest {
+        // Arrange
+        val validName = "Juan Pérez"
+
+        // Act
+        authViewModel.onDisplayNameChanged(validName)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = authViewModel.uiState.value
+        assertThat(currentState.displayName).isEqualTo(validName)
+        assertThat(currentState.isDisplayNameValid).isTrue()
+        assertThat(currentState.displayNameError).isNull()
+    }
+
+    /**
+     * GIVEN: Display name muy corto (< 2 caracteres)
+     * WHEN: Se valida
+     * THEN: Muestra error
+     */
+    @Test
+    fun testOnDisplayNameChanged_WithShortName_ShowsError() = runTest {
+        // Arrange
+        val shortName = "A"
+
+        // Act
+        authViewModel.onDisplayNameChanged(shortName)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = authViewModel.uiState.value
+        assertThat(currentState.isDisplayNameValid).isFalse()
+        assertThat(currentState.displayNameError).isNotEmpty()
+    }
+
+    /**
+     * GIVEN: Contraseñas que coinciden
+     * WHEN: Se actualiza confirmPassword
+     * THEN: No hay error de confirmación
+     */
+    @Test
+    fun testOnConfirmPasswordChanged_WithMatchingPasswords_IsValid() = runTest {
+        // Arrange
+        val password = "password123"
+        authViewModel.onPasswordChanged(password)
+        advanceUntilIdle()
+
+        // Act
+        authViewModel.onConfirmPasswordChanged(password)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = authViewModel.uiState.value
+        assertThat(currentState.passwordConfirm).isEqualTo(password)
+        assertThat(currentState.password).isEqualTo(currentState.passwordConfirm)
+    }
+
+    /**
+     * GIVEN: Contraseñas que no coinciden
+     * WHEN: Se actualiza confirmPassword
+     * THEN: Las contraseñas son diferentes
+     */
+    @Test
+    fun testOnConfirmPasswordChanged_WithDifferentPasswords_DoesNotMatch() = runTest {
+        // Arrange
+        val password = "password123"
+        val differentPassword = "differentpassword"
+        authViewModel.onPasswordChanged(password)
+        advanceUntilIdle()
+
+        // Act
+        authViewModel.onConfirmPasswordChanged(differentPassword)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = authViewModel.uiState.value
+        assertThat(currentState.password).isNotEqualTo(currentState.passwordConfirm)
+    }
+
+    /**
+     * GIVEN: Datos válidos para registro
+     * WHEN: Se ejecuta register
+     * THEN: Autentica al usuario
+     */
+    @Test
+    fun testRegister_WithValidData_AuthenticatesUser() = runTest {
+        // Arrange
+        val email = "newuser@email.com"
+        val password = "password123"
+        val displayName = "Nuevo Usuario"
+        val user = User(
+            id = "456",
+            email = email,
+            displayName = displayName,
+            photoUrl = null,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+        coEvery { mockRegisterUseCase(email, password, displayName) } returns flowOf(
+            AuthResult.Success(user)
+        )
+
+        // Act
+        authViewModel.register(email, password, displayName)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = authViewModel.uiState.value
+        assertThat(currentState.isAuthenticated).isTrue()
+        assertThat(currentState.currentUser?.displayName).isEqualTo(displayName)
+        assertThat(currentState.error).isNull()
+    }
+
+    /**
+     * GIVEN: Email ya registrado
+     * WHEN: Se intenta registrar
+     * THEN: Muestra error
+     */
+    @Test
+    fun testRegister_WithExistingEmail_ShowsError() = runTest {
+        // Arrange
+        val email = "existing@email.com"
+        val password = "password123"
+        val displayName = "Usuario"
+        coEvery { mockRegisterUseCase(email, password, displayName) } returns flowOf(
+            AuthResult.Error("El email ya está registrado")
+        )
+
+        // Act
+        authViewModel.register(email, password, displayName)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = authViewModel.uiState.value
+        assertThat(currentState.isAuthenticated).isFalse()
+        assertThat(currentState.error).contains("registrado")
+    }
+
+    /**
+     * GIVEN: Toggle de password visibility
+     * WHEN: Se cambia el estado
+     * THEN: Se actualiza showPassword
+     */
+    @Test
+    fun testToggleShowPassword_ChangesVisibilityState() = runTest {
+        // Arrange
+        val initialState = authViewModel.uiState.value.showPassword
+
+        // Act
+        authViewModel.toggleShowPassword()
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = authViewModel.uiState.value
+        assertThat(currentState.showPassword).isNotEqualTo(initialState)
+    }
+
+    /**
      * GIVEN: Se muestran errores
      * WHEN: Se llama clearErrors()
      * THEN: Todos los errores se limpian
@@ -235,6 +398,7 @@ class AuthViewModelTest {
         // Arrange
         authViewModel.onEmailChanged("invalid")
         authViewModel.onPasswordChanged("123")
+        authViewModel.onDisplayNameChanged("A")
         advanceUntilIdle()
 
         // Act
@@ -246,5 +410,6 @@ class AuthViewModelTest {
         assertThat(currentState.error).isNull()
         assertThat(currentState.emailError).isNull()
         assertThat(currentState.passwordError).isNull()
+        assertThat(currentState.displayNameError).isNull()
     }
 }
