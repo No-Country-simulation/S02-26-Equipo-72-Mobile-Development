@@ -70,17 +70,39 @@ fun SplashScreen(
     when (splashState) {
         is SplashState.ToHome -> {
             LaunchedEffect(Unit) {
-                android.util.Log.d("SplashScreen", "Estado ToHome detectado, navegando a Home en ${NAVIGATION_DELAY_MS}ms")
+                android.util.Log.d(
+                    "SplashScreen",
+                    "Estado ToHome detectado, navegando a Home en ${NAVIGATION_DELAY_MS}ms"
+                )
                 delay(NAVIGATION_DELAY_MS.toLong())
                 android.util.Log.d("SplashScreen", "Navegando a Home: ${Route.Home.route}")
                 navController.navigate(Route.Home.route) {
                     popUpTo(Route.Splash.route) { inclusive = true }
+                    launchSingleTop = true
                 }
             }
         }
-        is SplashState.ToLogin -> {
+
+        is SplashState.ToOnboarding -> {
             LaunchedEffect(Unit) {
-                android.util.Log.d("SplashScreen", "Estado ToLogin detectado, navegando a Welcome en ${NAVIGATION_DELAY_MS}ms")
+                android.util.Log.d(
+                    "SplashScreen",
+                    "Estado ToOnboarding detectado, navegando a Onboarding en ${NAVIGATION_DELAY_MS}ms"
+                )
+                delay(NAVIGATION_DELAY_MS.toLong())
+                android.util.Log.d("SplashScreen", "Navegando a Onboarding: ${Route.Onboarding.route}")
+                navController.navigate(Route.Onboarding.route) {
+                    popUpTo(Route.Splash.route) { inclusive = true }
+                }
+            }
+        }
+
+        is SplashState.ToWelcome -> {
+            LaunchedEffect(Unit) {
+                android.util.Log.d(
+                    "SplashScreen",
+                    "Estado ToWelcome detectado, navegando a Welcome en ${NAVIGATION_DELAY_MS}ms"
+                )
                 delay(NAVIGATION_DELAY_MS.toLong())
                 android.util.Log.d("SplashScreen", "Navegando a Welcome: ${Route.Welcome.route}")
                 navController.navigate(Route.Welcome.route) {
@@ -88,9 +110,25 @@ fun SplashScreen(
                 }
             }
         }
+
+        is SplashState.ToLogin -> {
+            LaunchedEffect(Unit) {
+                android.util.Log.d(
+                    "SplashScreen",
+                    "Estado ToLogin detectado, navegando a AuthGraph en ${NAVIGATION_DELAY_MS}ms"
+                )
+                delay(NAVIGATION_DELAY_MS.toLong())
+                android.util.Log.d("SplashScreen", "Navegando a AuthGraph: ${Route.AuthGraph.route}")
+                navController.navigate(Route.AuthGraph.route) {
+                    popUpTo(Route.Splash.route) { inclusive = true }
+                }
+            }
+        }
+
         is SplashState.Loading -> {
             android.util.Log.d("SplashScreen", "Estado Loading - mostrando UI de carga")
         }
+
         is SplashState.Error -> {
             android.util.Log.e("SplashScreen", "Estado Error: ${splashState.message}")
         }

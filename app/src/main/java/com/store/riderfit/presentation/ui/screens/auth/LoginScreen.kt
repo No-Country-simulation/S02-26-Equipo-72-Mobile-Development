@@ -31,12 +31,14 @@ import com.store.riderfit.presentation.ui.components.auth.AuthButtonType
 import com.store.riderfit.presentation.ui.components.auth.EmailField
 import com.store.riderfit.presentation.ui.components.auth.PasswordField
 import com.store.riderfit.presentation.ui.components.common.ErrorDialog
+import com.store.riderfit.presentation.ui.navigation.Route
 import com.store.riderfit.presentation.ui.theme.RiderFitColors
 import com.store.riderfit.presentation.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavController,
+    onContinueAsGuest: (() -> Unit)? = null,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState = viewModel.uiState.collectAsState().value
@@ -44,8 +46,9 @@ fun LoginScreen(
     // Navegar a home después de login exitoso
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated && !uiState.isSubmitting) {
-            navController.navigate("home") {
-                popUpTo("welcome") { inclusive = true }
+            navController.navigate(Route.Home.route) {
+                popUpTo(Route.Welcome.route) { inclusive = true }
+                launchSingleTop = true
             }
         }
     }
@@ -169,6 +172,22 @@ fun LoginScreen(
                 )
             }
 
+            // Continue as guest button
+            onContinueAsGuest?.let { continueAsGuest ->
+                TextButton(
+                    onClick = {
+                        viewModel.continueAsGuest()
+                        continueAsGuest()
+                    },
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        text = "Continuar como invitado",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

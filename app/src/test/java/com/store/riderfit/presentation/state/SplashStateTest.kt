@@ -22,6 +22,16 @@ class SplashStateTest {
     }
 
     @Test
+    fun `ToOnboarding state should be created correctly`() {
+        // Arrange & Act
+        val toOnboardingState = SplashState.ToOnboarding
+
+        // Assert
+        assertThat(toOnboardingState).isInstanceOf(SplashState::class.java)
+        assertThat(toOnboardingState).isEqualTo(SplashState.ToOnboarding)
+    }
+
+    @Test
     fun `ToLogin state should be created correctly`() {
         // Arrange & Act
         val toLoginState = SplashState.ToLogin
@@ -68,14 +78,19 @@ class SplashStateTest {
     fun `Different states should not be equal`() {
         // Arrange
         val loadingState = SplashState.Loading
+        val toOnboardingState = SplashState.ToOnboarding
         val toLoginState = SplashState.ToLogin
         val toHomeState = SplashState.ToHome
         val errorState = SplashState.Error("error")
 
         // Assert - Ningún estado debe ser igual a otro
+        assertThat(loadingState).isNotEqualTo(toOnboardingState)
         assertThat(loadingState).isNotEqualTo(toLoginState)
         assertThat(loadingState).isNotEqualTo(toHomeState)
         assertThat(loadingState).isNotEqualTo(errorState)
+        assertThat(toOnboardingState).isNotEqualTo(toLoginState)
+        assertThat(toOnboardingState).isNotEqualTo(toHomeState)
+        assertThat(toOnboardingState).isNotEqualTo(errorState)
         assertThat(toLoginState).isNotEqualTo(toHomeState)
         assertThat(toLoginState).isNotEqualTo(errorState)
         assertThat(toHomeState).isNotEqualTo(errorState)
@@ -109,6 +124,7 @@ class SplashStateTest {
         // Arrange
         val states = listOf(
             SplashState.Loading,
+            SplashState.ToOnboarding,
             SplashState.ToLogin,
             SplashState.ToHome,
             SplashState.Error("Test error")
@@ -118,6 +134,7 @@ class SplashStateTest {
         states.forEach { state ->
             when (state) {
                 is SplashState.Loading -> assertThat(state).isEqualTo(SplashState.Loading)
+                is SplashState.ToOnboarding -> assertThat(state).isEqualTo(SplashState.ToOnboarding)
                 is SplashState.ToLogin -> assertThat(state).isEqualTo(SplashState.ToLogin)
                 is SplashState.ToHome -> assertThat(state).isEqualTo(SplashState.ToHome)
                 is SplashState.Error -> assertThat(state.message).isEqualTo("Test error")
@@ -129,6 +146,7 @@ class SplashStateTest {
     fun `State should have proper toString representation`() {
         // Arrange & Act
         val loadingState = SplashState.Loading
+        val toOnboardingState = SplashState.ToOnboarding
         val toLoginState = SplashState.ToLogin
         val toHomeState = SplashState.ToHome
         val errorState = SplashState.Error("Test message")
@@ -136,6 +154,9 @@ class SplashStateTest {
         // Assert - Verificar que toString no sea nulo y contenga información útil
         assertThat(loadingState.toString()).isNotEmpty()
         assertThat(loadingState.toString()).contains("Loading")
+
+        assertThat(toOnboardingState.toString()).isNotEmpty()
+        assertThat(toOnboardingState.toString()).contains("ToOnboarding")
 
         assertThat(toLoginState.toString()).isNotEmpty()
         assertThat(toLoginState.toString()).contains("ToLogin")

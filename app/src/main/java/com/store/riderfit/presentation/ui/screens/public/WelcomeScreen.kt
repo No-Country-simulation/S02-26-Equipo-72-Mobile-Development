@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,16 +20,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.store.riderfit.R
 import com.store.riderfit.presentation.ui.components.auth.AuthButton
 import com.store.riderfit.presentation.ui.components.auth.AuthButtonType
+import com.store.riderfit.presentation.ui.navigation.Route
 import com.store.riderfit.presentation.ui.theme.RiderFitColors
+import com.store.riderfit.presentation.viewmodel.AuthViewModel
 
+
+/**
+ * WelcomeScreen: Pantalla de bienvenida - Punto de bifurcación de flujos
+ *
+ * Flujos principales (posterior a esta pantalla):
+ * 1. FLUJO GUEST (INVITADO):
+ *    - Botón "Invitado" → Onboarding → PersonalizationWizard (3 pasos) → Result → Home
+ *
+ * 2. FLUJO REGISTER (REGISTRO):
+ *    - Botón "Crear mi cuenta" → Register → Onboarding → PersonalizationWizard (3 pasos) → Result → Home
+ *
+ * 3. FLUJO LOGIN (INICIO DE SESIÓN):
+ *    - Botón "Iniciar sesión" → Login → Home (sin Onboarding)
+ *
+ * NOTA IMPORTANTE:
+ * - Onboarding se muestra SOLO después de "Invitado" o "Crear mi cuenta"
+ * - Login va directamente a Home (usuario ya autenticado)
+ */
 @Composable
 fun WelcomeScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val uiState = viewModel.uiState.collectAsState().value
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -102,18 +126,23 @@ fun WelcomeScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Botón Crear mi cuenta
+                    // FLUJO REGISTER: Botón Crear mi cuenta
+                    // Destino: Register → Onboarding → PersonalizationWizard → Result → Home
                     AuthButton(
                         text = "Crear mi cuenta",
-                        onClick = { navController.navigate("register") },
+                        onClick = {
+                            viewModel.startRegistrationFlow()
+                            navController.navigate(Route.Register.route)
+                        },
                         type = AuthButtonType.FILLED,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    // Botón Iniciar sesión
+                    // FLUJO LOGIN: Botón Iniciar sesión
+                    // Destino: Login → Home (sin Onboarding)
                     AuthButton(
                         text = "Iniciar sesión",
-                        onClick = { navController.navigate("login") },
+                        onClick = { navController.navigate(Route.Login.route) },
                         type = AuthButtonType.OUTLINED,
                         contentColor = RiderFitColors.Primary,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -156,18 +185,23 @@ fun WelcomeScreen(
                         )
                     }
 
-                    // Botón Invitado
+                    // FLUJO GUEST: Botón Invitado
+                    // Destino: Onboarding → PersonalizationWizard → Result → Home
                     AuthButton(
                         text = "Invitado",
                         onClick = {
-                            // Navegar como invitado
-                            navController.navigate("home") {
-                                popUpTo("welcome") { inclusive = true }
+                            // Marcar como usuario guest en preferences
+                            viewModel.continueAsGuest()
+                            // Navegar a Onboarding (obligatorio para invitados)
+                            navController.navigate(Route.Onboarding.route) {
+                                popUpTo(Route.Welcome.route) { inclusive = true }
                             }
                         },
                         type = AuthButtonType.FILLED,
                         backgroundColor = RiderFitColors.Secondary,
                         contentColor = RiderFitColors.OnSecondary,
+                        isLoading = uiState.isSubmitting,
+                        enabled = !uiState.isSubmitting,
                         modifier = Modifier.padding(bottom = 20.dp)
                     )
 
@@ -198,6 +232,21 @@ fun WelcomeScreen(
                             )
                         }
                     }
+
+                    // BOTÓN DE DEBUG TEMPORAL - Solo para desarrollo
+                    TextButton(
+                        onClick = {
+                            viewModel.clearOnboardingForDebug()
+                        },
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = "🐛 DEBUG: Reset Onboarding",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
                 }
             }
         }

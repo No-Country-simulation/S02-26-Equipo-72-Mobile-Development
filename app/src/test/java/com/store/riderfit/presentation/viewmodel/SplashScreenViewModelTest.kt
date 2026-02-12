@@ -2,6 +2,7 @@ package com.store.riderfit.presentation.viewmodel
 
 import android.util.Log
 import com.google.common.truth.Truth.assertThat
+import com.store.riderfit.data.local.preferences.UserPreferences
 import com.store.riderfit.domain.model.User
 import com.store.riderfit.domain.usecase.auth.GetCurrentUserUseCase
 import com.store.riderfit.presentation.state.SplashState
@@ -23,12 +24,13 @@ import org.junit.Test
 
 /**
  * Tests unitarios para SplashScreenViewModel
- * Validamos: Estados del splash, navegación basada en autenticación
+ * Validamos: Estados del splash, navegación basada en autenticación y onboarding
  */
 class SplashScreenViewModelTest {
 
     private lateinit var splashViewModel: SplashScreenViewModel
     private val mockGetCurrentUserUseCase = mockk<GetCurrentUserUseCase>()
+    private val mockUserPreferences = mockk<UserPreferences>(relaxed = true)
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
@@ -65,9 +67,10 @@ class SplashScreenViewModelTest {
             updatedAt = System.currentTimeMillis()
         )
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(authenticatedUser)
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(true)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
         advanceUntilIdle()
 
         // Assert
@@ -76,17 +79,18 @@ class SplashScreenViewModelTest {
     }
 
     /**
-     * GIVEN: Usuario no autenticado (null)
+     * GIVEN: Usuario no autenticado y ya vio onboarding
      * WHEN: Se inicializa el ViewModel
      * THEN: Estado cambia a ToLogin
      */
     @Test
-    fun testInitialization_WithUnauthenticatedUser_NavigatesToLogin() = runTest {
+    fun testInitialization_WithUnauthenticatedUser_AndHasSeenOnboarding_NavigatesToLogin() = runTest {
         // Arrange
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(true)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
         advanceUntilIdle()
 
         // Assert
@@ -95,22 +99,64 @@ class SplashScreenViewModelTest {
     }
 
     /**
-     * GIVEN: GetCurrentUserUseCase lanza excepción
+     * GIVEN: Usuario no autenticado y NO ha visto onboarding
      * WHEN: Se inicializa el ViewModel
-     * THEN: Estado cambia a Error
+     * THEN: Estado cambia a ToOnboarding
      */
     @Test
-    fun testInitialization_WithException_ShowsError() = runTest {
+    fun testInitialization_WithUnauthenticatedUser_AndHasNotSeenOnboarding_NavigatesToOnboarding() = runTest {
+        // Arrange
+        coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(false)
+
+        // Act
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
+        advanceUntilIdle()
+
+        // Assert
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isInstanceOf(SplashState.ToOnboarding::class.java)
+    }
+
+    /**
+     * GIVEN: GetCurrentUserUseCase lanza excepción
+     * WHEN: Se inicializa el ViewModel
+     * THEN: Estado cambia a ToLogin como fallback
+     */
+    @Test
+    fun testInitialization_WithException_NavigatesToLogin() = runTest {
         // Arrange
         val errorMessage = "Error de conexión"
         coEvery { mockGetCurrentUserUseCase() } throws Exception(errorMessage)
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(true)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
         advanceUntilIdle()
 
         // Assert
         // En caso de error, el ViewModel navega a ToLogin como fallback
+        val currentState = splashViewModel.splashState.value
+        assertThat(currentState).isEqualTo(SplashState.ToLogin)
+    }
+
+    /**
+     * GIVEN: UserPreferences lanza excepción
+     * WHEN: Se inicializa el ViewModel con usuario no autenticado
+     * THEN: Estado cambia a ToLogin por el catch general
+     */
+    @Test
+    fun testInitialization_WithUserPreferencesException_NavigatesToLogin() = runTest {
+        // Arrange
+        coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
+        coEvery { mockUserPreferences.hasSeenOnboarding } throws Exception("Preferences error")
+
+        // Act
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
+        advanceUntilIdle()
+
+        // Assert
+        // La excepción se propaga y es capturada por el catch general → ToLogin
         val currentState = splashViewModel.splashState.value
         assertThat(currentState).isEqualTo(SplashState.ToLogin)
     }
@@ -124,9 +170,10 @@ class SplashScreenViewModelTest {
     fun testInitialization_StartsInLoadingState() = runTest {
         // Arrange
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(null)
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(false)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
 
         // Assert (inicialmente debería estar en Loading)
         val initialState = splashViewModel.splashState.value
@@ -150,9 +197,10 @@ class SplashScreenViewModelTest {
             updatedAt = System.currentTimeMillis()
         )
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(userWithPartialData)
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(true)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
         advanceUntilIdle()
 
         // Assert
@@ -166,12 +214,13 @@ class SplashScreenViewModelTest {
      * THEN: Estado cambia a ToLogin como fallback
      */
     @Test
-    fun testInitialization_WithTimeout_ShowsError() = runTest {
+    fun testInitialization_WithTimeout_NavigatesToLogin() = runTest {
         // Arrange
         coEvery { mockGetCurrentUserUseCase() } throws Exception("Timeout")
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(true)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
         advanceUntilIdle()
 
         // Assert
@@ -198,9 +247,10 @@ class SplashScreenViewModelTest {
         )
 
         coEvery { mockGetCurrentUserUseCase() } returns flowOf(user1, user2)
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(true)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
         advanceUntilIdle()
 
         // Assert
@@ -210,21 +260,22 @@ class SplashScreenViewModelTest {
     }
 
     /**
-     * GIVEN: Use case emite flowOf vacío
+     * GIVEN: Use case emite flowOf vacío (sin valores)
      * WHEN: Se inicializa
-     * THEN: Va a ToLogin por no tener datos
+     * THEN: Va a ToLogin por el catch general
      */
     @Test
-    fun testInitialization_WithEmptyFlow_HandlesGracefully() = runTest {
-        // Arrange
+    fun testInitialization_WithEmptyFlow_NavigatesToLogin() = runTest {
+        // Arrange - flowOf() vacío no emite valores, first() falla con NoSuchElementException
         coEvery { mockGetCurrentUserUseCase() } returns flowOf()
+        coEvery { mockUserPreferences.hasSeenOnboarding } returns flowOf(false)
 
         // Act
-        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase)
+        splashViewModel = SplashScreenViewModel(mockGetCurrentUserUseCase, mockUserPreferences)
         advanceUntilIdle()
 
         // Assert
-        // Sin emisiones, se comporta como si no hubiera usuario
+        // flowOf() vacío → first() falla → excepción se propaga al catch general → ToLogin
         val currentState = splashViewModel.splashState.value
         assertThat(currentState).isEqualTo(SplashState.ToLogin)
     }

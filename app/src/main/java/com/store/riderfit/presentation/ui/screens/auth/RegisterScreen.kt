@@ -24,6 +24,7 @@ import com.store.riderfit.presentation.ui.components.auth.AuthButtonType
 import com.store.riderfit.presentation.ui.components.auth.EmailField
 import com.store.riderfit.presentation.ui.components.auth.PasswordField
 import com.store.riderfit.presentation.ui.components.common.ErrorDialog
+import com.store.riderfit.presentation.ui.navigation.Route
 import com.store.riderfit.presentation.ui.theme.RiderFitColors
 import com.store.riderfit.presentation.viewmodel.AuthViewModel
 
@@ -35,24 +36,26 @@ fun RegisterScreen(
     val uiState = viewModel.uiState.collectAsState().value
 
     // Validar si todos los campos están completos y válidos
-    val isFormValid = remember(uiState.displayName, uiState.email, uiState.password, uiState.passwordConfirm,
-                              uiState.displayNameError, uiState.emailError, uiState.passwordError, uiState.confirmPasswordError) {
+    val isFormValid = remember(
+        uiState.displayName, uiState.email, uiState.password, uiState.passwordConfirm,
+        uiState.displayNameError, uiState.emailError, uiState.passwordError, uiState.confirmPasswordError
+    ) {
         uiState.displayName.isNotBlank() &&
-        uiState.email.isNotBlank() &&
-        uiState.password.isNotBlank() &&
-        uiState.passwordConfirm.isNotBlank() &&
-        uiState.displayNameError.isNullOrEmpty() &&
-        uiState.emailError.isNullOrEmpty() &&
-        uiState.passwordError.isNullOrEmpty() &&
-        uiState.confirmPasswordError.isNullOrEmpty() &&
-        uiState.password == uiState.passwordConfirm
+                uiState.email.isNotBlank() &&
+                uiState.password.isNotBlank() &&
+                uiState.passwordConfirm.isNotBlank() &&
+                uiState.displayNameError.isNullOrEmpty() &&
+                uiState.emailError.isNullOrEmpty() &&
+                uiState.passwordError.isNullOrEmpty() &&
+                uiState.confirmPasswordError.isNullOrEmpty() &&
+                uiState.password == uiState.passwordConfirm
     }
 
-    // Navegar a home después de registro exitoso
+    // Navegar a onboarding después de registro exitoso
     LaunchedEffect(uiState.isAuthenticated) {
         if (uiState.isAuthenticated && !uiState.isSubmitting) {
-            navController.navigate("home") {
-                popUpTo("welcome") { inclusive = true }
+            navController.navigate(Route.Onboarding.route) {
+                popUpTo(Route.Welcome.route) { inclusive = true }
             }
         }
     }
@@ -220,11 +223,11 @@ fun RegisterScreen(
 
             Text(
                 text = if (!uiState.emailError.isNullOrEmpty()) uiState.emailError!!
-                      else "Sensible a mayús & minus, puede contener números, caracteres.",
+                else "Sensible a mayús & minus, puede contener números, caracteres.",
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                 color = if (!uiState.emailError.isNullOrEmpty()) RiderFitColors.Error
-                       else if (uiState.email.isNotBlank() && uiState.emailError.isNullOrEmpty())
-                           RiderFitColors.Primary else RiderFitColors.NeutralTones.L400,
+                else if (uiState.email.isNotBlank() && uiState.emailError.isNullOrEmpty())
+                    RiderFitColors.Primary else RiderFitColors.NeutralTones.L400,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -309,7 +312,7 @@ fun RegisterScreen(
                     .fillMaxWidth()
                     .padding(bottom = 4.dp),
                 isError = !uiState.confirmPasswordError.isNullOrEmpty() ||
-                          (uiState.passwordConfirm.isNotBlank() && uiState.password != uiState.passwordConfirm),
+                        (uiState.passwordConfirm.isNotBlank() && uiState.password != uiState.passwordConfirm),
                 singleLine = true,
                 visualTransformation = if (confirmPasswordVisible)
                     androidx.compose.ui.text.input.VisualTransformation.None
@@ -323,7 +326,8 @@ fun RegisterScreen(
                     Row {
                         if (uiState.passwordConfirm.isNotBlank() &&
                             uiState.password == uiState.passwordConfirm &&
-                            uiState.confirmPasswordError.isNullOrEmpty()) {
+                            uiState.confirmPasswordError.isNullOrEmpty()
+                        ) {
                             Icon(
                                 painter = painterResource(id = android.R.drawable.checkbox_on_background),
                                 contentDescription = "Válido",
@@ -348,8 +352,9 @@ fun RegisterScreen(
                 text = "Sensible a mayús & minus, pueden contener números, signos, caracteres.",
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                 color = if (uiState.passwordConfirm.isNotBlank() &&
-                          uiState.password == uiState.passwordConfirm &&
-                          uiState.confirmPasswordError.isNullOrEmpty())
+                    uiState.password == uiState.passwordConfirm &&
+                    uiState.confirmPasswordError.isNullOrEmpty()
+                )
                     RiderFitColors.Primary else RiderFitColors.NeutralTones.L400,
                 modifier = Modifier.padding(bottom = 32.dp)
             )

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.store.riderfit.domain.model.AuthResult
+import com.store.riderfit.data.local.preferences.UserPreferences
 import com.store.riderfit.domain.usecase.auth.GetCurrentUserUseCase
 import com.store.riderfit.domain.usecase.auth.LoginUseCase
 import com.store.riderfit.domain.usecase.auth.LogoutUseCase
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
 import javax.inject.Inject
 
 private const val TAG = "AuthViewModel"
@@ -27,15 +29,28 @@ class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase,
     private val logoutUseCase: LogoutUseCase,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val userPreferences: UserPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
     init {
         Log.d(TAG, "AuthViewModel inicializado, llamando checkCurrentUser()")
         checkCurrentUser()
+        setupAuthStateListener()
+    }
+
+    private fun setupAuthStateListener() {
+        val listener = FirebaseAuth.AuthStateListener { auth ->
+            _isAuthenticated.value = auth.currentUser != null
+            Log.d(TAG, "Auth state changed: ${auth.currentUser != null}")
+        }
+        FirebaseAuth.getInstance().addAuthStateListener(listener)
     }
 
     // ==================== EVENTOS ====================
@@ -132,6 +147,10 @@ class AuthViewModel @Inject constructor(
             loginUseCase(email, password).collect { result ->
                 when (result) {
                     is AuthResult.Success -> {
+                        // Guardar en UserPreferences que está logueado
+                        launch {
+                            userPreferences.setLoggedIn(true)
+                        }
                         _uiState.update {
                             it.copy(
                                 loginState = UiState.Success(result.data),
@@ -141,6 +160,7 @@ class AuthViewModel @Inject constructor(
                             )
                         }
                     }
+
                     is AuthResult.Error -> {
                         _uiState.update {
                             it.copy(
@@ -150,6 +170,7 @@ class AuthViewModel @Inject constructor(
                             )
                         }
                     }
+
                     is AuthResult.Loading -> {
                         _uiState.update {
                             it.copy(
@@ -169,6 +190,12 @@ class AuthViewModel @Inject constructor(
             registerUseCase(email, password, displayName).collect { result ->
                 when (result) {
                     is AuthResult.Success -> {
+                        // Guardar en UserPreferences que está logueado
+                        launch {
+                            userPreferences.setLoggedIn(true)
+                        }
+                        // NO marcar onboarding como visto - el usuario registrado debe ver onboarding y personalización
+
                         _uiState.update {
                             it.copy(
                                 registerState = UiState.Success(result.data),
@@ -182,6 +209,7 @@ class AuthViewModel @Inject constructor(
                             )
                         }
                     }
+
                     is AuthResult.Error -> {
                         _uiState.update {
                             it.copy(
@@ -191,6 +219,7 @@ class AuthViewModel @Inject constructor(
                             )
                         }
                     }
+
                     is AuthResult.Loading -> {
                         _uiState.update {
                             it.copy(
@@ -210,6 +239,10 @@ class AuthViewModel @Inject constructor(
             logoutUseCase().collect { result ->
                 when (result) {
                     is AuthResult.Success -> {
+                        // Guardar en UserPreferences que NO está logueado
+                        launch {
+                            userPreferences.setLoggedIn(false)
+                        }
                         _uiState.update {
                             it.copy(
                                 logoutState = UiState.Success(Unit),
@@ -223,6 +256,7 @@ class AuthViewModel @Inject constructor(
                             )
                         }
                     }
+
                     is AuthResult.Error -> {
                         _uiState.update {
                             it.copy(
@@ -232,6 +266,7 @@ class AuthViewModel @Inject constructor(
                             )
                         }
                     }
+
                     is AuthResult.Loading -> {
                         _uiState.update {
                             it.copy(
@@ -241,6 +276,65 @@ class AuthViewModel @Inject constructor(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Continuar como invitado - marcar como usuario invitado para mostrar onboarding
+     */
+    fun continueAsGuest() {
+        viewModelScope.launch {
+            try {
+                // Marcar como usuario invitado que necesita ver onboarding y personalización
+                userPreferences.setGuestUser(true)
+                userPreferences.setOnboardingCompleted(false) // Asegurar que vea onboarding
+                userPreferences.setPersonalizationCompleted(false) // Asegurar que vea personalización
+                Log.d(TAG, "Usuario continuó como invitado, marcado para onboarding + personalización")
+                _uiState.update {
+                    it.copy(
+                        isAuthenticated = false,
+                        currentUser = null
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error al continuar como invitado", e)
+                _uiState.update {
+                    it.copy(error = "Error al continuar como invitado")
+                }
+            }
+        }
+    }
+
+    /**
+     * Iniciar flujo de registro - marcar para onboarding y personalización
+     */
+    fun startRegistrationFlow() {
+        viewModelScope.launch {
+            try {
+                // Marcar que necesita ver onboarding y personalización después del registro
+                userPreferences.setOnboardingCompleted(false)
+                userPreferences.setPersonalizationCompleted(false)
+                userPreferences.setGuestUser(false)
+                Log.d(TAG, "Iniciado flujo de registro, marcado para onboarding + personalización")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error iniciando flujo de registro", e)
+            }
+        }
+    }
+
+    /**
+     * FUNCIÓN TEMPORAL PARA DESARROLLO - Limpiar preferencias de onboarding
+     * TODO: Remover en producción
+     */
+    fun clearOnboardingForDebug() {
+        viewModelScope.launch {
+            try {
+                userPreferences.setOnboardingCompleted(false)
+                userPreferences.setGuestUser(false)
+                Log.d(TAG, "DEBUG: Preferencias de onboarding limpiadas")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error limpiando preferencias debug", e)
             }
         }
     }

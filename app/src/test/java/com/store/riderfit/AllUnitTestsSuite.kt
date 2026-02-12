@@ -23,10 +23,18 @@ import org.junit.runners.Suite
     // ViewModels
     com.store.riderfit.presentation.viewmodel.AuthViewModelTest::class,
     com.store.riderfit.presentation.viewmodel.SplashScreenViewModelTest::class,
+    com.store.riderfit.presentation.viewmodel.OnboardingViewModelTest::class,
+    com.store.riderfit.presentation.viewmodel.OnboardingUiStateTest::class,
 
     // States
     com.store.riderfit.presentation.state.AuthUiStateTest::class,
     com.store.riderfit.presentation.state.SplashStateTest::class,
+
+    // UI Screens
+    com.store.riderfit.presentation.ui.screens.onboarding.OnboardingDataTest::class,
+
+    // ==================== DATA TESTS ====================
+    com.store.riderfit.data.local.preferences.UserPreferencesUnitTest::class,
 
     // ==================== UTILS TESTS ====================
     com.store.riderfit.utils.validators.EmailValidatorTest::class,
@@ -35,7 +43,7 @@ import org.junit.runners.Suite
 class AllUnitTestsSuite {
 
     companion object {
-        const val TOTAL_TESTS_EXPECTED = 40 // Aproximado
+        const val TOTAL_TESTS_EXPECTED = 55 // Aproximado (incluye onboarding)
 
         /**
          * Categorías de tests incluidas
@@ -43,6 +51,8 @@ class AllUnitTestsSuite {
         val TEST_CATEGORIES = listOf(
             "Authentication Use Cases",
             "ViewModels & State Management",
+            "Onboarding Flow & Navigation",
+            "Data Layer (UserPreferences)",
             "Input Validation",
             "Error Handling",
             "Loading States",
@@ -55,6 +65,8 @@ class AllUnitTestsSuite {
         val COVERAGE_TARGETS = mapOf(
             "Domain Layer" to 90,
             "Presentation Layer" to 85,
+            "Data Layer (UserPreferences)" to 85,
+            "UI Components (Onboarding)" to 75,
             "Utils" to 95
         )
     }

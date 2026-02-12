@@ -3,6 +3,7 @@ package com.store.riderfit.presentation.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.store.riderfit.data.local.preferences.UserPreferences
 import com.store.riderfit.domain.usecase.auth.GetCurrentUserUseCase
 import com.store.riderfit.presentation.state.SplashState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,13 +24,23 @@ private const val VERIFICATION_TIMEOUT_MS = 3000L
  *
  * Responsabilidades:
  * - Verificar si el usuario está autenticado
- * - Navegar a Login o Home según el estado
+ * - Navegar a Welcome (para usuarios no autenticados) o Home (para autenticados)
  * - Manejar timeout de verificación
  * - Loguear errores sin mostrar diálogos
+ *
+ * FLUJOS DE NAVEGACIÓN:
+ * ✓ Usuario autenticado → Home
+ * ✓ Usuario NO autenticado → Welcome (sin Onboarding automático)
+ *
+ * NOTA: Onboarding se muestra SOLO cuando el usuario presiona un botón específico en Welcome:
+ * - "Registrarse" → Register → Onboarding
+ * - "Ingresar como invitado" → Onboarding
+ * - "Login" → Login → Home
  */
 @HiltViewModel
 class SplashScreenViewModel @Inject constructor(
-    private val getCurrentUserUseCase: GetCurrentUserUseCase
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val userPreferences: UserPreferences
 ) : ViewModel() {
 
     private val _splashState = MutableStateFlow<SplashState>(SplashState.Loading)
@@ -42,9 +53,13 @@ class SplashScreenViewModel @Inject constructor(
 
     /**
      * Verifica el estado de autenticación del usuario
+     *
+     * Lógica:
      * - Si está autenticado → ToHome
-     * - Si no está autenticado → ToLogin
-     * - Timeout después de 3 segundos
+     * - Si NO está autenticado → ToWelcome (sin pasar por Onboarding)
+     *
+     * IMPORTANTE: Onboarding NO se muestra automáticamente aquí.
+     * Se muestra solo cuando el usuario presiona un botón en WelcomeScreen.
      */
     private fun verifyAuthentication() {
         viewModelScope.launch {
@@ -54,13 +69,23 @@ class SplashScreenViewModel @Inject constructor(
                 // Timeout de seguridad: máximo 3 segundos
                 val isAuthenticated = withTimeoutOrNull(VERIFICATION_TIMEOUT_MS) {
                     try {
-                        // Usar first() en lugar de collect para obtener un valor único
-                        val user = getCurrentUserUseCase().first()
+                        // Usar runCatching para manejar mejor las excepciones de Flow
+                        val result = runCatching {
+                            getCurrentUserUseCase().first()
+                        }
+
+                        val user = result.getOrNull()
                         val authenticated = user != null
-                        Log.d(TAG, "Usuario obtenido: ${if (authenticated) "autenticado" else "no autenticado"}")
+
+                        if (result.isFailure) {
+                            Log.w(TAG, "Error obteniendo usuario (manejado): ${result.exceptionOrNull()?.message}")
+                        } else {
+                            Log.d(TAG, "Usuario obtenido: ${if (authenticated) "autenticado" else "no autenticado"}")
+                        }
+
                         authenticated
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error obteniendo usuario: ${e.message}")
+                        Log.e(TAG, "Error crítico obteniendo usuario: ${e.message}")
                         false
                     }
                 } ?: run {
@@ -68,20 +93,22 @@ class SplashScreenViewModel @Inject constructor(
                     false
                 }
 
-                // Navegar según resultado
+                // Determinar siguiente pantalla
                 val newState = if (isAuthenticated) {
                     Log.d(TAG, "✓ Usuario autenticado → Navegando a Home")
                     SplashState.ToHome
                 } else {
-                    Log.d(TAG, "✗ Usuario no autenticado → Navegando a Login")
-                    SplashState.ToLogin
+                    // Usuario NO autenticado → ir a Welcome
+                    // Onboarding se mostrará SOLO si el usuario presiona un botón específico
+                    Log.d(TAG, "✗ Usuario NO autenticado → Navegando a Welcome (sin Onboarding automático)")
+                    SplashState.ToWelcome
                 }
 
                 _splashState.update { newState }
 
             } catch (e: Exception) {
                 Log.e(TAG, "Error crítico en verifyAuthentication: ${e.message}", e)
-                _splashState.update { SplashState.ToLogin }
+                _splashState.update { SplashState.ToWelcome }
             }
         }
     }

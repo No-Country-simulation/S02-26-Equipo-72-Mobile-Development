@@ -120,17 +120,7 @@ class AuthRepositoryImpl(
         try {
             Log.d(TAG, "getCurrentUser() iniciado")
 
-            // Verificar preferencias primero (más rápido)
-            val isLoggedIn = userPreferences.isLoggedIn.first()
-            Log.d(TAG, "isLoggedIn desde preferencias: $isLoggedIn")
-
-            if (!isLoggedIn) {
-                Log.d(TAG, "Usuario no autenticado según preferencias")
-                emit(null)
-                return@flow
-            }
-
-            // Verificar Firebase Auth
+            // Verificar Firebase Auth primero
             val firebaseUser = firebaseAuthService.firebaseAuth.currentUser
             Log.d(TAG, "Firebase currentUser: ${firebaseUser?.uid}")
 
@@ -140,6 +130,19 @@ class AuthRepositoryImpl(
                     val localUser = userDao.getUserById(firebaseUser.uid)
                     if (localUser != null) {
                         Log.d(TAG, "Usuario encontrado: ${localUser.email}")
+
+                        // Sincronizar preferencias si es necesario
+                        try {
+                            val isLoggedInPref = userPreferences.isLoggedIn.first()
+                            if (!isLoggedInPref) {
+                                userPreferences.setLoggedIn(true)
+                                userPreferences.saveUserId(localUser.id)
+                                userPreferences.saveUserEmail(localUser.email)
+                            }
+                        } catch (prefException: Exception) {
+                            Log.w(TAG, "Error sincronizando preferencias: ${prefException.message}")
+                        }
+
                         emit(User(
                             id = localUser.id,
                             email = localUser.email,
@@ -149,19 +152,52 @@ class AuthRepositoryImpl(
                             updatedAt = localUser.updatedAt
                         ))
                     } else {
-                        Log.w(TAG, "Usuario en Firebase pero no en BD local, limpiando sesión")
-                        // Limpiar preferencias inconsistentes
-                        userPreferences.clearAll()
-                        emit(null)
+                        Log.w(TAG, "Usuario en Firebase pero no en BD local")
+                        // Crear usuario local desde Firebase
+                        val newUser = User(
+                            id = firebaseUser.uid,
+                            email = firebaseUser.email ?: "",
+                            displayName = firebaseUser.displayName ?: "",
+                            photoUrl = firebaseUser.photoUrl?.toString(),
+                            createdAt = System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis()
+                        )
+
+                        // Guardar en BD local
+                        userDao.insertUser(
+                            UserEntity(
+                                id = newUser.id,
+                                email = newUser.email,
+                                displayName = newUser.displayName,
+                                photoUrl = newUser.photoUrl,
+                                createdAt = newUser.createdAt,
+                                updatedAt = newUser.updatedAt
+                            )
+                        )
+
+                        // Sincronizar preferencias
+                        userPreferences.setLoggedIn(true)
+                        userPreferences.saveUserId(newUser.id)
+                        userPreferences.saveUserEmail(newUser.email)
+
+                        emit(newUser)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error leyendo usuario de BD", e)
+                    Log.e(TAG, "Error con base de datos local", e)
                     emit(null)
                 }
             } else {
-                Log.w(TAG, "Preferencias indican autenticado pero no hay usuario en Firebase, limpiando")
-                // Limpiar preferencias inconsistentes
-                userPreferences.clearAll()
+                Log.d(TAG, "No hay usuario en Firebase")
+                // Limpiar preferencias si están desactualizadas
+                try {
+                    val isLoggedInPref = userPreferences.isLoggedIn.first()
+                    if (isLoggedInPref) {
+                        Log.w(TAG, "Limpiando preferencias inconsistentes")
+                        userPreferences.clearAll()
+                    }
+                } catch (prefException: Exception) {
+                    Log.w(TAG, "Error limpiando preferencias: ${prefException.message}")
+                }
                 emit(null)
             }
         } catch (e: Exception) {
@@ -170,6 +206,45 @@ class AuthRepositoryImpl(
         }
     }
 
-    override fun isUserAuthenticated(): Flow<Boolean> =
-        userPreferences.isLoggedIn
+    override fun isUserAuthenticated(): Flow<Boolean> = flow {
+        try {
+            // Verificar tanto Firebase como preferencias locales
+            val firebaseUser = firebaseAuthService.firebaseAuth.currentUser
+            val isLoggedInPref = try {
+                userPreferences.isLoggedIn.first()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error leyendo preferencias: ${e.message}")
+                false
+            }
+
+            val isAuthenticated = firebaseUser != null && isLoggedInPref
+            Log.d(TAG, "isUserAuthenticated: $isAuthenticated (Firebase: ${firebaseUser != null}, Prefs: $isLoggedInPref)")
+            emit(isAuthenticated)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en isUserAuthenticated", e)
+            emit(false)
+        }
+    }
+
+    /**
+     * Método auxiliar para verificar autenticación sin Flow
+     */
+    suspend fun isUserAuthenticatedSync(): Boolean {
+        return try {
+            val firebaseUser = firebaseAuthService.firebaseAuth.currentUser
+            val isLoggedInPref = try {
+                userPreferences.isLoggedIn.first()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error leyendo preferencias sync: ${e.message}")
+                false
+            }
+
+            val result = firebaseUser != null && isLoggedInPref
+            Log.d(TAG, "isUserAuthenticatedSync: $result")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en isUserAuthenticatedSync", e)
+            false
+        }
+    }
 }
