@@ -1,5 +1,7 @@
 package com.store.riderfit.presentation.ui.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -14,6 +16,11 @@ import com.store.riderfit.presentation.ui.screens.public.HomeScreen
 import com.store.riderfit.presentation.ui.screens.protected.ProfileScreen
 import com.store.riderfit.presentation.ui.screens.personalization.PersonalizationWizardScreen
 import com.store.riderfit.presentation.ui.screens.personalization.ResultScreen
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.store.riderfit.presentation.ui.components.common.BottomNavBar
 
 /**
  * Grafo de navegación principal de RiderFit
@@ -84,68 +91,133 @@ import com.store.riderfit.presentation.ui.screens.personalization.ResultScreen
  */
 @Composable
 fun RiderFitNavGraph(navController: NavHostController) {
-    NavHost(
-        navController = navController,
-        startDestination = Route.Splash.route
-    ) {
-        // ==================== SPLASH SCREEN ====================
-        /**
-         * SplashScreen: Punto de entrada de la app
-         *
-         * Lógica de decisión (simple):
-         * - Usuario autenticado → ToHome
-         * - Usuario NO autenticado → ToWelcome (el usuario elige flujo en WelcomeScreen)
-         *
-         * IMPORTANTE:
-         * - Onboarding NO se muestra aquí automáticamente
-         * - Se muestra solo cuando el usuario presiona un botón en WelcomeScreen:
-         *   1. "Registrarse" → Register → Onboarding
-         *   2. "Ingresar como invitado" → Onboarding
-         *   3. "Login" → Login → Home (sin Onboarding)
-         */
-        composable(Route.Splash.route) {
-            SplashScreen(navController)
-        }
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
-        // ==================== WELCOME SCREEN ====================
-        /**
-         * WelcomeScreen: Pantalla de bienvenida con 3 opciones
-         *
-         * Opciones y destinos:
-         * 1. "Crear mi cuenta" → Register (flujo REGISTRO)
-         * 2. "Iniciar sesión" → Login (flujo LOGIN)
-         * 3. "Invitado" → Onboarding (flujo GUEST)
-         *
-         * IMPORTANTE: Onboarding se muestra SOLO para Guest y Register
-         * Login NO pasa por Onboarding
-         */
-        composable(Route.Welcome.route) {
-            WelcomeScreen(navController)
-        }
+    Scaffold(
+        bottomBar = {
+            // Solo mostramos la barra en las pantallas principales (Home y Profile)
+            val showBottomBar = currentRoute in listOf(
+                Route.Home.route,
+                Route.Profile.route,
+                Route.Search.route
+            )
 
-        // ==================== AUTH GRAPH ====================
-        /**
-         * AuthGraph: Contiene pantallas de autenticación
-         * Punto de entrada: LoginScreen
-         */
-        navigation(
-            route = Route.AuthGraph.route,
-            startDestination = Route.Login.route
+            if (showBottomBar) {
+                BottomNavBar(navController = navController)
+            }
+        }
+    ) { innerPadding ->
+        // 3. El NavHost ahora usa el innerPadding para no quedar debajo de la barra
+        NavHost(
+            navController = navController,
+            startDestination = Route.Splash.route,
+            modifier = Modifier.padding(innerPadding)
         ) {
+
+            // ==================== SPLASH SCREEN ====================
             /**
-             * LoginScreen: Formulario de login
-             * Flujo: LOGIN
+             * SplashScreen: Punto de entrada de la app
              *
-             * Navegación post-login:
-             * - Login exitoso → Home (sin Onboarding, usuario ya autenticado)
-             * - Continuar como invitado → Home (pero marcado como guest)
+             * Lógica de decisión (simple):
+             * - Usuario autenticado → ToHome
+             * - Usuario NO autenticado → ToWelcome (el usuario elige flujo en WelcomeScreen)
+             *
+             * IMPORTANTE:
+             * - Onboarding NO se muestra aquí automáticamente
+             * - Se muestra solo cuando el usuario presiona un botón en WelcomeScreen:
+             *   1. "Registrarse" → Register → Onboarding
+             *   2. "Ingresar como invitado" → Onboarding
+             *   3. "Login" → Login → Home (sin Onboarding)
              */
-            composable(Route.Login.route) {
-                LoginScreen(
-                    navController = navController,
+            composable(Route.Splash.route) {
+                SplashScreen(navController)
+            }
+
+            // ==================== WELCOME SCREEN ====================
+            /**
+             * WelcomeScreen: Pantalla de bienvenida con 3 opciones
+             *
+             * Opciones y destinos:
+             * 1. "Crear mi cuenta" → Register (flujo REGISTRO)
+             * 2. "Iniciar sesión" → Login (flujo LOGIN)
+             * 3. "Invitado" → Onboarding (flujo GUEST)
+             *
+             * IMPORTANTE: Onboarding se muestra SOLO para Guest y Register
+             * Login NO pasa por Onboarding
+             */
+            composable(Route.Welcome.route) {
+                WelcomeScreen(navController)
+            }
+
+            // ==================== AUTH GRAPH ====================
+            /**
+             * AuthGraph: Contiene pantallas de autenticación
+             * Punto de entrada: LoginScreen
+             */
+            navigation(
+                route = Route.AuthGraph.route,
+                startDestination = Route.Login.route
+            ) {
+                /**
+                 * LoginScreen: Formulario de login
+                 * Flujo: LOGIN
+                 *
+                 * Navegación post-login:
+                 * - Login exitoso → Home (sin Onboarding, usuario ya autenticado)
+                 * - Continuar como invitado → Home (pero marcado como guest)
+                 */
+                composable(Route.Login.route) {
+                    LoginScreen(
+                        navController = navController,
+                        onContinueAsGuest = {
+                            navController.navigate(Route.Home.route) {
+                                popUpTo(Route.AuthGraph.route) {
+                                    inclusive = true
+                                }
+                            }
+                        }
+                    )
+                }
+
+                /**
+                 * RegisterScreen: Formulario de registro
+                 * Flujo: REGISTER
+                 *
+                 * Navegación post-registro:
+                 * - Registro exitoso → Onboarding (usuario debe completar onboarding + personalización)
+                 */
+                composable(Route.Register.route) {
+                    RegisterScreen(navController)
+                }
+            }
+
+            // ==================== ONBOARDING SCREEN ====================
+            /**
+             * OnboardingScreen: Introducción a la app
+             * Flujos que acceden aquí:
+             * 1. GUEST: Welcome → [Onboarding] → PersonalizationWizard
+             * 2. REGISTER: Register → [Onboarding] → PersonalizationWizard
+             *
+             * IMPORTANTE: Login NO pasa por Onboarding
+             *
+             * Navegación post-onboarding:
+             * - Completado → PersonalizationWizard (para ambos flujos: Guest y Register)
+             */
+            composable(Route.Onboarding.route) {
+                OnboardingScreen(
+                    onOnboardingCompleted = { isGuestUser ->
+                        // Ambos flujos (guest y register) van al wizard de personalización
+                        navController.navigate(Route.PersonalizationWizard.route) {
+                            popUpTo(Route.Onboarding.route) {
+                                inclusive = true
+                            }
+                        }
+                    },
                     onContinueAsGuest = {
-                        navController.navigate(Route.Home.route) {
-                            popUpTo(Route.AuthGraph.route) {
+                        // No usado en el nuevo flujo, pero se mantiene para compatibilidad
+                        navController.navigate(Route.PersonalizationWizard.route) {
+                            popUpTo(Route.Onboarding.route) {
                                 inclusive = true
                             }
                         }
@@ -153,167 +225,139 @@ fun RiderFitNavGraph(navController: NavHostController) {
                 )
             }
 
+            // ==================== PERSONALIZATION WIZARD ====================
             /**
-             * RegisterScreen: Formulario de registro
-             * Flujo: REGISTER
+             * PersonalizationWizardScreen: Wizard de personalización de 3 pasos
+             * Flujos que acceden aquí:
+             * 1. GUEST: Onboarding → [PersonalizationWizard] → Result
+             * 2. REGISTER: Onboarding → [PersonalizationWizard] → Result
              *
-             * Navegación post-registro:
-             * - Registro exitoso → Onboarding (usuario debe completar onboarding + personalización)
-             */
-            composable(Route.Register.route) {
-                RegisterScreen(navController)
-            }
-        }
-
-        // ==================== ONBOARDING SCREEN ====================
-        /**
-         * OnboardingScreen: Introducción a la app
-         * Flujos que acceden aquí:
-         * 1. GUEST: Welcome → [Onboarding] → PersonalizationWizard
-         * 2. REGISTER: Register → [Onboarding] → PersonalizationWizard
-         *
-         * IMPORTANTE: Login NO pasa por Onboarding
-         *
-         * Navegación post-onboarding:
-         * - Completado → PersonalizationWizard (para ambos flujos: Guest y Register)
-         */
-        composable(Route.Onboarding.route) {
-            OnboardingScreen(
-                onOnboardingCompleted = { isGuestUser ->
-                    // Ambos flujos (guest y register) van al wizard de personalización
-                    navController.navigate(Route.PersonalizationWizard.route) {
-                        popUpTo(Route.Onboarding.route) {
-                            inclusive = true
-                        }
-                    }
-                },
-                onContinueAsGuest = {
-                    // No usado en el nuevo flujo, pero se mantiene para compatibilidad
-                    navController.navigate(Route.PersonalizationWizard.route) {
-                        popUpTo(Route.Onboarding.route) {
-                            inclusive = true
-                        }
-                    }
-                }
-            )
-        }
-
-        // ==================== PERSONALIZATION WIZARD ====================
-        /**
-         * PersonalizationWizardScreen: Wizard de personalización de 3 pasos
-         * Flujos que acceden aquí:
-         * 1. GUEST: Onboarding → [PersonalizationWizard] → Result
-         * 2. REGISTER: Onboarding → [PersonalizationWizard] → Result
-         *
-         * Pasos internos (NO son rutas, son composables internos):
-         * - Step 1: Seleccionar disciplina ecuestre
-         * - Step 2: Información del caballo
-         * - Step 3: Información del jinete + preferencias
-         *
-         * Navegación:
-         * - Entre pasos: controlada internamente por PersonalizationViewModel
-         * - Post-wizard: → ResultScreen
-         */
-        composable(Route.PersonalizationWizard.route) {
-            PersonalizationWizardScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToResult = {
-                    navController.navigate(Route.PersonalizationResult.route) {
-                        popUpTo(Route.PersonalizationWizard.route) {
-                            inclusive = true
-                        }
-                    }
-                }
-            )
-        }
-
-        // ==================== PERSONALIZATION RESULT SCREEN ====================
-        /**
-         * ResultScreen: Pantalla de resultados de personalización
-         * Flujos que acceden aquí:
-         * 1. GUEST: PersonalizationWizard → [Result] → (Registrarme → Register → Home) O (Continuar como Invitado → Home)
-         * 2. REGISTER: PersonalizationWizard → [Result] → Home
-         *
-         * Contenido:
-         * - Resumen de personalización completada
-         * - Icono de éxito
-         * - Información del perfil personalizado
-         *
-         * Navegación según tipo de usuario:
-         * GUEST:
-         * - "Registrarme y Guardar" → Register → Onboarding (ya completado, va directamente a Home)
-         * - "Continuar como Invitado" → Home (sin registrarse)
-         *
-         * REGISTERED:
-         * - "Ver Productos Recomendados" → Home
-         *
-         * NOTA: El tipo de usuario (guest vs registered) se detecta dinámicamente
-         * desde UserPreferences en tiempo de ejecución.
-         */
-        composable(Route.PersonalizationResult.route) {
-            ResultScreen(
-                onNavigateToRegister = {
-                    navController.navigate(Route.Register.route) {
-                        popUpTo(Route.PersonalizationResult.route) {
-                            inclusive = true
-                        }
-                    }
-                },
-                onNavigateToHome = {
-                    // Limpiar todo el back stack excepto Home para evitar problemas de navegación
-                    navController.navigate(Route.Home.route) {
-                        popUpTo(Route.Splash.route) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                isGuestUser = false // Se determina dinámicamente en ResultScreen via ViewModel
-            )
-        }
-
-        // ==================== MAIN GRAPH ====================
-        /**
-         * MainGraph: Rutas protegidas de la app principal
-         * Punto de entrada: HomeScreen
-         * 
-         * IMPORTANTE: Home y Profile están en el mismo nivel dentro de MainGraph
-         * para que la navegación entre ellas funcione correctamente.
-         */
-        navigation(
-            route = Route.MainGraph.route,
-            startDestination = Route.Home.route
-        ) {
-            /**
-             * HomeScreen: Pantalla principal de la app (productos personalizados)
-             * Destino final de todos los flujos:
-             * 1. GUEST: Result → [Home]
-             * 2. REGISTER: Result → [Home]
-             * 3. LOGIN: Login → [Home]
+             * Pasos internos (NO son rutas, son composables internos):
+             * - Step 1: Seleccionar disciplina ecuestre
+             * - Step 2: Información del caballo
+             * - Step 3: Información del jinete + preferencias
              *
-             * Contenido:
-             * - Grid de productos personalizados basado en personalización
-             * - Opción para personalizar/repersonalizar
-             * - Acceso a perfil de usuario
+             * Navegación:
+             * - Entre pasos: controlada internamente por PersonalizationViewModel
+             * - Post-wizard: → ResultScreen
              */
-            composable(Route.Home.route) {
-                HomeScreen(navController)
+            composable(Route.PersonalizationWizard.route) {
+                PersonalizationWizardScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToResult = {
+                        navController.navigate(Route.PersonalizationResult.route) {
+                            popUpTo(Route.PersonalizationWizard.route) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
             }
 
+            // ==================== PERSONALIZATION RESULT SCREEN ====================
             /**
-             * ProfileScreen: Pantalla de perfil del usuario
-             * Accesible desde: HomeScreen → Botón "Perfil"
-             * 
+             * ResultScreen: Pantalla de resultados de personalización
+             * Flujos que acceden aquí:
+             * 1. GUEST: PersonalizationWizard → [Result] → (Registrarme → Register → Home) O (Continuar como Invitado → Home)
+             * 2. REGISTER: PersonalizationWizard → [Result] → Home
+             *
              * Contenido:
-             * - Información del usuario autenticado
-             * - Opciones de edición de perfil
-             * - Botón de logout
+             * - Resumen de personalización completada
+             * - Icono de éxito
+             * - Información del perfil personalizado
+             *
+             * Navegación según tipo de usuario:
+             * GUEST:
+             * - "Registrarme y Guardar" → Register → Onboarding (ya completado, va directamente a Home)
+             * - "Continuar como Invitado" → Home (sin registrarse)
+             *
+             * REGISTERED:
+             * - "Ver Productos Recomendados" → Home
+             *
+             * NOTA: El tipo de usuario (guest vs registered) se detecta dinámicamente
+             * desde UserPreferences en tiempo de ejecución.
              */
-            composable(Route.Profile.route) {
-                ProfileScreen(navController)
+            composable(Route.PersonalizationResult.route) {
+                ResultScreen(
+                    onNavigateToRegister = {
+                        navController.navigate(Route.Register.route) {
+                            popUpTo(Route.PersonalizationResult.route) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    onNavigateToHome = {
+                        // Limpiar todo el back stack excepto Home para evitar problemas de navegación
+                        navController.navigate(Route.Home.route) {
+                            popUpTo(Route.Splash.route) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    isGuestUser = false // Se determina dinámicamente en ResultScreen via ViewModel
+                )
+            }
+
+            // ==================== MAIN GRAPH ====================
+            /**
+             * MainGraph: Rutas protegidas de la app principal
+             * Punto de entrada: HomeScreen
+             *
+             * IMPORTANTE: Home y Profile están en el mismo nivel dentro de MainGraph
+             * para que la navegación entre ellas funcione correctamente.
+             */
+
+            navigation(
+                route = Route.MainGraph.route,
+                startDestination = Route.Home.route
+            ) {
+                // ======= RUTA DE EXPLORAR =======
+                composable(Route.Search.route) {
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = "Sección Explorar\n(Próximamente)",
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+                            color = com.store.riderfit.presentation.ui.theme.RiderFitColors.PrimaryTones.L700
+                        )
+                    }
+                }
+                /**
+                 * HomeScreen: Pantalla principal de la app (productos personalizados)
+                 * Destino final de todos los flujos:
+                 * 1. GUEST: Result → [Home]
+                 * 2. REGISTER: Result → [Home]
+                 * 3. LOGIN: Login → [Home]
+                 *
+                 * Contenido:
+                 * - Grid de productos personalizados basado en personalización
+                 * - Opción para personalizar/repersonalizar
+                 * - Acceso a perfil de usuario
+                 */
+                composable(Route.Home.route) {
+                    HomeScreen(navController)
+                }
+
+                /**
+                 * ProfileScreen: Pantalla de perfil del usuario
+                 * Accesible desde: HomeScreen → Botón "Perfil"
+                 *
+                 * Contenido:
+                 * - Información del usuario autenticado
+                 * - Opciones de edición de perfil
+                 * - Botón de logout
+                 */
+                composable(Route.Profile.route) {
+                    ProfileScreen(navController)
+
+                }
             }
         }
     }

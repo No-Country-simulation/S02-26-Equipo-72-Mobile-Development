@@ -29,6 +29,7 @@ sealed class Route(val route: String) {
     // ==================== MAIN GRAPH ====================
     object Home : Route("home")
     object Profile : Route("profile")
+    object Search : Route("search")
 
     // ==================== GRAPH ROUTES ====================
     object AuthGraph : Route("auth_graph")
